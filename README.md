@@ -1,0 +1,4 @@
+squidlights
+===========
+
+Successor to squidnet
