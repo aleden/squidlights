@@ -1,5 +1,5 @@
-#include "squidlightswidget.h"
-#include "lights.h"
+#include "webinterface.h"
+#include "light.h"
 
 #include <Wt/WHBoxLayout>
 #include <Wt/WMenu>
@@ -167,14 +167,17 @@ SquidLightsWidget::SquidLightsWidget() : WContainerWidget() {
   hLayout->addWidget(menu);
   hLayout->addWidget(contentsStack, 1);
 
-  for (const char** p = lights; *p; ++p) {
+  const char *lights[] = {"center room", "2nd landing", "3rd landing",
+                          "4th landing", "23",          "tree",
+                          0};
+  for (const char **p = lights; *p; ++p) {
     Wt::WGroupBox *group = new Wt::WGroupBox("Light Settings");
 
     Wt::WContainerWidget *container = new Wt::WContainerWidget(group);
     Wt::WVBoxLayout *vLayout = new Wt::WVBoxLayout(container);
     vLayout->setContentsMargins(0, 0, 0, 0);
 
-    Wt::WStackedWidget* sttngs = settingsWidget();
+    Wt::WStackedWidget *sttngs = settingsWidget();
     vLayout->addWidget(makeLightControlToolBar(sttngs));
     vLayout->addWidget(sttngs);
 

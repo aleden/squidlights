@@ -1,4 +1,6 @@
-#include "squidlightswidget.h"
+#include "device.h"
+#include "light.h"
+#include "webinterface.h"
 #include <Wt/WApplication>
 #include <Wt/WEnvironment>
 #include <Wt/WHBoxLayout>
@@ -11,6 +13,8 @@
 #include <Wt/WText>
 
 using namespace Wt;
+
+namespace squidlights {
 
 Wt::WApplication *createApplication(const Wt::WEnvironment &env) {
   WApplication* app = new Wt::WApplication(env);
@@ -54,18 +58,12 @@ Wt::WApplication *createApplication(const Wt::WEnvironment &env) {
   return app;
 }
 
+}
+
 int main(int argc, char **argv) {
-  /*
-   * Your main method may set up some shared resources, but should then
-   * start the server application (FastCGI or httpd) that starts listening
-   * for requests, and handles all of the application life cycles.
-   *
-   * The last argument to WRun specifies the function that will instantiate
-   * new application objects. That function is executed when a new user surfs
-   * to the Wt application, and after the library has negotiated browser
-   * support. The function should return a newly instantiated application
-   * object.
-   */
-  return WRun(argc, argv, &createApplication);
+  squidlights::init_devices();
+  squidlights::init_lights();
+
+  return WRun(argc, argv, &squidlights::createApplication);
 }
 

@@ -1,14 +1,14 @@
 CXX      := g++
-CXXFLAGS := -O3 -g -std=c++11
+CXXFLAGS := -O0 -g -std=c++11
 INCLUDES := -I include
-LDFLAGS  := -lwt -lwthttp
+LDFLAGS  := -lwt -lwthttp -lboost_system -lboost_filesystem -lola -lolacommon
 
 SRCS := $(wildcard src/*.cpp)
 OBJS := $(patsubst src/%.cpp,build/%.o,$(SRCS))
 DEPS := $(patsubst src/%.cpp,build/%.d,$(SRCS))
 
 build/squidlights: $(OBJS)
-	@echo "LD $^"
+	@echo "LINK $^"
 	@$(CXX) -o $@ $(LDFLAGS) $^
 
 # pull in dependency info for existing .o files
