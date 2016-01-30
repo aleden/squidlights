@@ -12,5 +12,6 @@ struct device_t {
 
 void init_devices();
 const std::vector<device_t>& devices();
+device_t* device_by_name(const std::string&);
 
 }

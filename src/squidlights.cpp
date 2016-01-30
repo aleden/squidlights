@@ -1,5 +1,7 @@
 #include "device.h"
 #include "light.h"
+#include "changer.h"
+#include "state.h"
 #include "webinterface.h"
 #include <Wt/WApplication>
 #include <Wt/WEnvironment>
@@ -67,6 +69,8 @@ Wt::WApplication *createApplication(const Wt::WEnvironment &env) {
 int main(int argc, char **argv) {
   squidlights::init_devices();
   squidlights::init_lights();
+  squidlights::init_changers();
+  squidlights::init_state();
 
   return WRun(argc, argv, &squidlights::createApplication);
 }

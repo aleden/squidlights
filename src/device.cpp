@@ -31,13 +31,16 @@ namespace squidlights {
 static std::vector<device_t> dl;
 
 static unordered_map<string, device_t*> ipaddr_to_dev_map;
+static unordered_map<string, device_t*> nm_to_dev_map;
 
 static void fill_ip_dev_map();
 static void fill_dev_olaunivs();
+static void fill_dev_nm_map();
 
 void init_devices() {
   fill_ip_dev_map();
   fill_dev_olaunivs();
+  fill_dev_nm_map();
 }
 
 static string read_text_file(const string& fp);
@@ -212,11 +215,17 @@ void fill_dev_olaports(SelectServer *ss,
   ss->Terminate();
 }
 
-void init_ola_map() {
-}
-
 const std::vector<device_t>& devices() {
   return dl;
+}
+
+void fill_dev_nm_map() {
+  for (device_t& d : dl)
+    nm_to_dev_map[d.nm] = &d;
+}
+
+device_t* device_by_name(const std::string& nm) {
+  return nm_to_dev_map[nm];
 }
 
 }

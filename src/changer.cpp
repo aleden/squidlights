@@ -1,6 +1,5 @@
-#include "light.h"
+#include "changer.h"
 #include "common.h"
-#include "device.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -10,13 +9,13 @@ using namespace std;
 
 namespace squidlights {
 
-static std::vector<light_t> ll;
+static std::vector<changer_t> cl;
 
-void init_lights() {
-  fs::path l_dir(appdir() / "lights");
+void init_changers() {
+  fs::path l_dir(appdir() / "changers");
   fs::directory_iterator end_iter;
 
-  // determine number of lights
+  // determine number of changers
   unsigned n = 0;
   for (fs::directory_iterator it(l_dir); it != end_iter; ++it) {
     if (!fs::is_regular_file(it->status()))
@@ -25,39 +24,34 @@ void init_lights() {
     ++n;
   }
 
-  ll.resize(n);
+  cl.resize(n);
 
   unsigned i = 0;
   for (fs::directory_iterator it(l_dir); it != end_iter; ++it) {
     if (!fs::is_regular_file(it->status()))
       continue;
 
-    light_t& l = ll[i];
-    l.nm = it->path().stem().string();
+    changer_t& chg = cl[i];
+    chg.nm = it->path().stem().string();
 
     pt::ptree pt;
     pt::read_json(it->path().string(), pt);
 
-    l.desc = pt.get<string>("desc");
+    chg.desc = pt.get<string>("desc");
 
+#if 0
     for (const pt::ptree::value_type &v : pt) {
       if (v.first == "desc")
         continue;
-
-      dmx_channel_range rng;
-      rng.dev = device_by_name(l.nm);
-      rng.beg = v.second.get<unsigned>("beg");
-      rng.end = v.second.get<unsigned>("end");
-
-      l.rngs.push_back(rng);
     }
+#endif
 
     ++i;
   }
 }
 
-const std::vector<light_t>& lights() {
-  return ll;
+const std::vector<changer_t>& changers() {
+  return cl;
 }
 
 }
