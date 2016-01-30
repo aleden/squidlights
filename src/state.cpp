@@ -1,10 +1,16 @@
 #include "state.h"
+#include "changer.h"
+#include <vector>
+
+using namespace std;
 
 namespace squidlights {
 
-std::mutex state_mutex;
+mutex state_mutex;
+vector<int> active_changers;
 
 void init_state() {
+  active_changers.resize(changers().size());
 }
 
 int light_active_changer(unsigned light_idx) {
