@@ -1,11 +1,8 @@
 {
-    "32 all lights":
+    "desc": "All the lights in 32",
+    "32":
     {
-        "desc": "All the lights in 32",
-        "32":
-        {
-            "beg": "0",
-            "end": "512"
-        }
+        "beg": "0",
+        "end": "512"
     }
 }

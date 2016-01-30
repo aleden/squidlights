@@ -1,16 +1,13 @@
 {
-    "Tepilepsy":
+    "desc": "LED wall in the dining room",
+    "tepilepsy 1":
     {
-        "desc": "LED wall in the dining room",
-        "tepilepsy 1":
-        {
-            "beg": "0",
-            "end": "512"
-        },
-        "tepilepsy 2":
-        {
-            "beg": "0",
-            "end": "512"
-        }
+        "beg": "0",
+        "end": "512"
+    },
+    "tepilepsy 2":
+    {
+        "beg": "0",
+        "end": "512"
     }
 }

@@ -1,11 +1,8 @@
 {
-    "Center room":
+    "desc": "All the lights in the center room",
+    "center room":
     {
-        "desc": "All the lights in the center room",
-        "center room":
-        {
-            "beg": "0",
-            "end": "512"
-        }
+        "beg": "0",
+        "end": "512"
     }
 }
