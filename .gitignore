@@ -3,6 +3,7 @@
 !changers
 !include
 !lights
+!devices
 !Makefile
 !README.md
 !resources
