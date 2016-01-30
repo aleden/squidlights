@@ -24,30 +24,31 @@ Wt::WToolBar *changersToolBar(unsigned light_idx,
   state_mutex.lock();
 
   unsigned chg_i = 0;
-  for (const changer_t& chg : changers()) {
-    Wt::WPushButton* btn = new Wt::WPushButton("Off");
+  for (const changer_t &chg : changers()) {
+    Wt::WPushButton *btn = new Wt::WPushButton(chg.nm);
     btn->setCheckable(true);
-    btn->setChecked(light_active_changer(light_idx) == chg_i);
+#if 0
+    btn->setChecked(light_changer(light_idx) == chg_i);
+#endif
 
-    btn->clicked().connect(bind([=]() {
+    btn->clicked().connect([=](const Wt::WMouseEvent& e) {
       state_mutex.lock();
 
+      set_changer_for_light(chg_i, light_idx);
+
       for (unsigned btn_i = 0; btn_i < toolBar->count(); ++btn_i) {
+        if (btn_i == chg_i)
+          continue;
+
         Wt::WPushButton *btn_i_widg =
             dynamic_cast<Wt::WPushButton *>(toolBar->widget(btn_i));
         assert(btn_i_widg);
         btn_i_widg->setChecked(false);
       }
-
-      Wt::WPushButton *chg_widg =
-          dynamic_cast<Wt::WPushButton *>(toolBar->widget(chg_i));
-      assert(chg_widg);
-      chg_widg->setChecked(true);
-
       chgrs_widg->setCurrentIndex(chg_i);
 
       state_mutex.unlock();
-    }));
+    });
 
     toolBar->addButton(btn);
 
@@ -60,33 +61,47 @@ Wt::WToolBar *changersToolBar(unsigned light_idx,
 }
 
 Wt::WWidget *changerWidget(const changer_t &chg) {
-  for (const changer_arg_t& a : chg.args) {
+  Wt::WContainerWidget *container = new Wt::WContainerWidget();
+  Wt::WVBoxLayout *vLayout = new Wt::WVBoxLayout();
+
+  for (const changer_arg_t &a : chg.args) {
+    Wt::WGroupBox *group = new Wt::WGroupBox(a.desc);
+
     switch (a.ty) {
     case CHANGER_ARG_COLOR: {
-      Wt::WImage *img = new Wt::WImage(Wt::WLink("resources/color_picker.png"));
-      img->clicked().connect(std::bind([=](const Wt::WMouseEvent &e) {
+      Wt::WImage *img =
+          new Wt::WImage(Wt::WLink("resources/color_picker.png"), group);
+      img->clicked().connect([=](const Wt::WMouseEvent &e) {
         cout << "clicked at " << boost::lexical_cast<std::string>(e.widget().x)
              << "," << boost::lexical_cast<std::string>(e.widget().y) << ")"
              << endl;
-      }, std::placeholders::_1));
-      img->mouseDragged().connect(std::bind([=](const Wt::WMouseEvent &e) {
+      });
+      img->mouseDragged().connect([=](const Wt::WMouseEvent &e) {
         cout << "dragged at " << boost::lexical_cast<std::string>(e.widget().x)
              << "," << boost::lexical_cast<std::string>(e.widget().y) << ")"
              << endl;
-      }, std::placeholders::_1));
-    } break;
-
-    case CHANGER_ARG_BOUNDED_INT:
-      return new Wt::WText("TODO");
+      });
+      img->setMaximumSize(200, 200);
       break;
     }
+
+    default:
+      new Wt::WText("TODO", group);
+      break;
+    }
+
+    vLayout->addWidget(group);
   }
+
+  container->setLayout(vLayout);
+
+  return container;
 }
 
-Wt::WStackedWidget* changersWidget() {
+Wt::WStackedWidget *changersWidget() {
   Wt::WStackedWidget *chgrs_widg = new Wt::WStackedWidget();
 
-  for (const changer_t& chg : changers())
+  for (const changer_t &chg : changers())
     chgrs_widg->addWidget(changerWidget(chg));
 
   chgrs_widg->addWidget(new Wt::WText(""));
@@ -112,7 +127,7 @@ SquidLightsWidget::SquidLightsWidget() : WContainerWidget() {
   hLayout->addWidget(contentsStack, 1);
 
   unsigned l_idx = 0;
-  for (const light_t& l : lights()) {
+  for (const light_t &l : lights()) {
     Wt::WGroupBox *group = new Wt::WGroupBox(l.desc);
 
     Wt::WContainerWidget *container = new Wt::WContainerWidget(group);
@@ -159,5 +174,4 @@ SquidLightsWidget::SquidLightsWidget() : WContainerWidget() {
   layout->setContentsMargins(0, 0, 0, 0);
 #endif
 }
-
 }

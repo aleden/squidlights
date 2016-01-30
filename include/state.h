@@ -9,9 +9,12 @@ void init_state();
 
 // an integer for every light specifies what changer is active. -1 denotes that
 // no changers are active.
-int light_active_changer(unsigned light_idx);
+int light_changer(unsigned light_idx);
 
 // set what changer is active for a light
-void set_light_active_changer(unsigned changer_idx, unsigned light_idx);
+void set_changer_for_light(unsigned changer_idx, unsigned light_idx);
+
+// restart light changer (e.g. due to change in arguments)
+void restart_light_changer(unsigned light_idx);
 
 }
