@@ -43,7 +43,7 @@ void init_devices() {
 static string read_text_file(const string& fp);
 
 void fill_ip_dev_map() {
-  fs::path dev_dir(rootdir() / "devices");
+  fs::path dev_dir(appdir() / "devices");
   fs::directory_iterator end_iter;
 
   // determine number of color kinetic devices

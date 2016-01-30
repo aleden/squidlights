@@ -2,6 +2,6 @@
 
 namespace squidlights {
 
-boost::filesystem::path rootdir();
+boost::filesystem::path appdir();
 
 }

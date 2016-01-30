@@ -6,7 +6,7 @@ namespace fs = boost::filesystem;
 
 namespace squidlights {
 
-fs::path rootdir() {
+fs::path appdir() {
   char buf[2048] = {0};
   ssize_t size = readlink("/proc/self/exe", buf, sizeof(buf));
   string str(buf, size);
