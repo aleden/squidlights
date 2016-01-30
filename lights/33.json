@@ -1,0 +1,11 @@
+{
+    "33 all lights":
+    {
+        "desc": "All the lights in 33",
+        "33":
+        {
+            "beg": "0",
+            "end": "512"
+        }
+    }
+}
