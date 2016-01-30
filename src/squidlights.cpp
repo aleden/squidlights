@@ -11,13 +11,17 @@
 #include <Wt/WLineEdit>
 #include <Wt/WPushButton>
 #include <Wt/WText>
+#include <iostream>
 
 using namespace Wt;
+using namespace std;
 
 namespace squidlights {
 
 Wt::WApplication *createApplication(const Wt::WEnvironment &env) {
   WApplication* app = new Wt::WApplication(env);
+
+  cout << "squidlights::createApplication" << endl;
 
   // Choice of theme: defaults to bootstrap3 but can be overridden using
   // a theme parameter (for testing)

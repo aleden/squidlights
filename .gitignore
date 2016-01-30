@@ -2,7 +2,9 @@
 !.gitignore
 !.clang-format
 !changers
+!changers/*
 !include
+!include/*.h
 !lights
 !lights/*
 !devices
@@ -11,5 +13,6 @@
 !README.md
 !resources
 !src
+!src/*.cpp
 !style
 !build
