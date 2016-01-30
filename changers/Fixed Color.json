@@ -1,11 +1,8 @@
 {
     "desc": "Sets one and only one color",
-    "args":
+    "clr":
     {
-        "clr":
-        {
-            "type": "color",
-            "desc": "The color to set"
-        },
+        "type": "color",
+        "desc": "The color to set"
     }
 }

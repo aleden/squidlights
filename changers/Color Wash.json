@@ -1,23 +1,20 @@
 {
     "desc": "Changes light color through the Hue dimension",
-    "args":
+    "freq":
     {
-        "freq":
-        {
-            "type": "int",
-            "desc": "Speed (ms)",
-            "beg": "100",
-            "end": "10000"
-        },
-        "begclr":
-        {
-            "type": "color",
-            "desc": "Start color"
-        },
-        "endclr":
-        {
-            "type": "color",
-            "desc": "End color"
-        }
+        "type": "int",
+        "desc": "Speed (ms)",
+        "beg": "100",
+        "end": "10000"
+    },
+    "begclr":
+    {
+        "type": "color",
+        "desc": "Start color"
+    },
+    "endclr":
+    {
+        "type": "color",
+        "desc": "End color"
     }
 }

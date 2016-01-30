@@ -1,16 +1,13 @@
 {
     "desc": "Changes light color between the Hue dimension",
-    "args":
+    "begclr":
     {
-        "begclr":
-        {
-            "type": "color",
-            "desc": "Start color"
-        },
-        "endclr":
-        {
-            "type": "color",
-            "desc": "End color"
-        }
+        "type": "color",
+        "desc": "Start color"
+    },
+    "endclr":
+    {
+        "type": "color",
+        "desc": "End color"
     }
 }

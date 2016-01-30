@@ -11,6 +11,7 @@ using namespace std;
 namespace squidlights {
 
 static std::vector<light_t> ll;
+static void print_lights();
 
 void init_lights() {
   fs::path l_dir(appdir() / "lights");
@@ -45,7 +46,7 @@ void init_lights() {
         continue;
 
       dmx_channel_range rng;
-      rng.dev = device_by_name(l.nm);
+      rng.dev = device_by_name(v.first);
       rng.beg = v.second.get<unsigned>("beg");
       rng.end = v.second.get<unsigned>("end");
 
@@ -53,6 +54,18 @@ void init_lights() {
     }
 
     ++i;
+  }
+
+  print_lights();
+}
+
+void print_lights() {
+  for (const light_t& l : ll) {
+    cout << "light " << l.nm << endl;
+    cout << "  description: " << l.desc << endl;
+    for (const dmx_channel_range& rng : l.rngs)
+      cout << "  " << rng.dev->nm << " [" << rng.beg << ", " << rng.end << ")"
+           << endl;
   }
 }
 
