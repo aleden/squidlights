@@ -1,6 +1,7 @@
 #include "webinterface.h"
 #include "light.h"
-
+#include "changer.h"
+#include "state.h"
 #include <Wt/WHBoxLayout>
 #include <Wt/WMenu>
 #include <Wt/WNavigationBar>
@@ -14,141 +15,84 @@
 
 using namespace std;
 
-static Wt::WPushButton *createColorButton(const char *className,
-                                          const Wt::WString &text) {
-  Wt::WPushButton *button = new Wt::WPushButton();
-  button->setTextFormat(Wt::XHTMLText);
-  button->setText(text);
-  button->addStyleClass(className);
-  button->setCheckable(true);
-  button->setChecked(false);
-  return button;
-}
+namespace squidlights {
 
-Wt::WToolBar* makeLightControlToolBar(Wt::WStackedWidget* sttngs) {
+Wt::WToolBar *changersToolBar(unsigned light_idx,
+                              Wt::WStackedWidget *chgrs_widg) {
   Wt::WToolBar *toolBar = new Wt::WToolBar();
 
-  Wt::WPushButton *fixedBtn = createColorButton("btn-inverse", "Fixed");
-  Wt::WPushButton *clrWashBtn = createColorButton("", "Color Wash");
-  Wt::WPushButton *redBtn = createColorButton("btn-danger", "Red");
-  Wt::WPushButton *greenBtn = createColorButton("btn-success", "Green");
-  Wt::WPushButton *blueBtn = createColorButton("btn-primary", "Blue");
-  Wt::WPushButton *orangeBtn = createColorButton("btn-warning", "Orange");
-  Wt::WPushButton *offBtn = new Wt::WPushButton("Off");
+  state_mutex.lock();
 
-  fixedBtn->clicked().connect(std::bind([=]() {
-    sttngs->setCurrentIndex(0);
+  unsigned chg_i = 0;
+  for (const changer_t& chg : changers()) {
+    Wt::WPushButton* btn = new Wt::WPushButton("Off");
+    btn->setCheckable(true);
+    btn->setChecked(light_active_changer(light_idx) == chg_i);
 
-    clrWashBtn->setChecked(false);
-    redBtn->setChecked(false);
-    greenBtn->setChecked(false);
-    blueBtn->setChecked(false);
-    orangeBtn->setChecked(false);
-    offBtn->setChecked(false);
-  }));
-  clrWashBtn->clicked().connect(std::bind([=]() {
-    sttngs->setCurrentIndex(1);
+    btn->clicked().connect(bind([=]() {
+      state_mutex.lock();
 
-    fixedBtn->setChecked(false);
-    redBtn->setChecked(false);
-    greenBtn->setChecked(false);
-    blueBtn->setChecked(false);
-    orangeBtn->setChecked(false);
-    offBtn->setChecked(false);
-  }));
-  redBtn->clicked().connect(std::bind([=]() {
-    sttngs->setCurrentIndex(2);
+      for (unsigned btn_i = 0; btn_i < toolBar->count(); ++btn_i) {
+        Wt::WPushButton *btn_i_widg =
+            dynamic_cast<Wt::WPushButton *>(toolBar->widget(btn_i));
+        assert(btn_i_widg);
+        btn_i_widg->setChecked(false);
+      }
 
-    fixedBtn->setChecked(false);
-    clrWashBtn->setChecked(false);
-    greenBtn->setChecked(false);
-    blueBtn->setChecked(false);
-    orangeBtn->setChecked(false);
-    offBtn->setChecked(false);
-  }));
-  greenBtn->clicked().connect(std::bind([=]() {
-    sttngs->setCurrentIndex(3);
+      Wt::WPushButton *chg_widg =
+          dynamic_cast<Wt::WPushButton *>(toolBar->widget(chg_i));
+      assert(chg_widg);
+      chg_widg->setChecked(true);
 
-    fixedBtn->setChecked(false);
-    clrWashBtn->setChecked(false);
-    redBtn->setChecked(false);
-    blueBtn->setChecked(false);
-    orangeBtn->setChecked(false);
-    offBtn->setChecked(false);
-  }));
-  blueBtn->clicked().connect(std::bind([=]() {
-    sttngs->setCurrentIndex(4);
+      chgrs_widg->setCurrentIndex(chg_i);
 
-    fixedBtn->setChecked(false);
-    clrWashBtn->setChecked(false);
-    redBtn->setChecked(false);
-    greenBtn->setChecked(false);
-    orangeBtn->setChecked(false);
-    offBtn->setChecked(false);
-  }));
-  orangeBtn->clicked().connect(std::bind([=]() {
-    sttngs->setCurrentIndex(5);
+      state_mutex.unlock();
+    }));
 
-    fixedBtn->setChecked(false);
-    clrWashBtn->setChecked(false);
-    redBtn->setChecked(false);
-    greenBtn->setChecked(false);
-    blueBtn->setChecked(false);
-    offBtn->setChecked(false);
-  }));
-  offBtn->clicked().connect(std::bind([=]() {
-    sttngs->setCurrentIndex(6);
+    toolBar->addButton(btn);
 
-    fixedBtn->setChecked(false);
-    clrWashBtn->setChecked(false);
-    redBtn->setChecked(false);
-    greenBtn->setChecked(false);
-    blueBtn->setChecked(false);
-    orangeBtn->setChecked(false);
-  }));
+    ++chg_i;
+  }
 
-  offBtn->setCheckable(true);
-  offBtn->setChecked(true);
-
-  toolBar->addButton(fixedBtn);
-  toolBar->addButton(clrWashBtn);
-  toolBar->addSeparator();
-  toolBar->addButton(redBtn);
-  toolBar->addButton(greenBtn);
-  toolBar->addButton(blueBtn);
-  toolBar->addButton(orangeBtn);
-  toolBar->addSeparator();
-  toolBar->addButton(offBtn);
+  state_mutex.unlock();
 
   return toolBar;
 }
 
-Wt::WStackedWidget* settingsWidget() {
-  Wt::WStackedWidget *sttngs = new Wt::WStackedWidget();
+Wt::WWidget *changerWidget(const changer_t &chg) {
+  for (const changer_arg_t& a : chg.args) {
+    switch (a.ty) {
+    case CHANGER_ARG_COLOR: {
+      Wt::WImage *img = new Wt::WImage(Wt::WLink("resources/color_picker.png"));
+      img->clicked().connect(std::bind([=](const Wt::WMouseEvent &e) {
+        cout << "clicked at " << boost::lexical_cast<std::string>(e.widget().x)
+             << "," << boost::lexical_cast<std::string>(e.widget().y) << ")"
+             << endl;
+      }, std::placeholders::_1));
+      img->mouseDragged().connect(std::bind([=](const Wt::WMouseEvent &e) {
+        cout << "dragged at " << boost::lexical_cast<std::string>(e.widget().x)
+             << "," << boost::lexical_cast<std::string>(e.widget().y) << ")"
+             << endl;
+      }, std::placeholders::_1));
+    } break;
 
-  Wt::WImage *img =
-      new Wt::WImage(Wt::WLink("resources/color_picker.png"));
-  img->clicked().connect(std::bind([=](const Wt::WMouseEvent &e) {
-    cout << "clicked at " << boost::lexical_cast<std::string>(e.widget().x)
-         << "," << boost::lexical_cast<std::string>(e.widget().y) << ")"
-         << endl;
-  }, std::placeholders::_1));
-  img->mouseDragged().connect(std::bind([=](const Wt::WMouseEvent &e) {
-    cout << "dragged at " << boost::lexical_cast<std::string>(e.widget().x)
-         << "," << boost::lexical_cast<std::string>(e.widget().y) << ")"
-         << endl;
-  }, std::placeholders::_1));
-  sttngs->addWidget(img);
-  sttngs->addWidget(new Wt::WText("color wash"));
-  sttngs->addWidget(new Wt::WText("red"));
-  sttngs->addWidget(new Wt::WText("green"));
-  sttngs->addWidget(new Wt::WText("blue"));
-  sttngs->addWidget(new Wt::WText("orange"));
-  sttngs->addWidget(new Wt::WText("off"));
+    case CHANGER_ARG_BOUNDED_INT:
+      return new Wt::WText("TODO");
+      break;
+    }
+  }
+}
 
-  sttngs->setCurrentIndex(6);
+Wt::WStackedWidget* changersWidget() {
+  Wt::WStackedWidget *chgrs_widg = new Wt::WStackedWidget();
 
-  return sttngs;
+  for (const changer_t& chg : changers())
+    chgrs_widg->addWidget(changerWidget(chg));
+
+  chgrs_widg->addWidget(new Wt::WText(""));
+  chgrs_widg->setCurrentIndex(changers().size());
+
+  return chgrs_widg;
 }
 
 SquidLightsWidget::SquidLightsWidget() : WContainerWidget() {
@@ -167,21 +111,21 @@ SquidLightsWidget::SquidLightsWidget() : WContainerWidget() {
   hLayout->addWidget(menu);
   hLayout->addWidget(contentsStack, 1);
 
-  const char *lights[] = {"center room", "2nd landing", "3rd landing",
-                          "4th landing", "23",          "tree",
-                          0};
-  for (const char **p = lights; *p; ++p) {
-    Wt::WGroupBox *group = new Wt::WGroupBox("Light Settings");
+  unsigned l_idx = 0;
+  for (const light_t& l : lights()) {
+    Wt::WGroupBox *group = new Wt::WGroupBox(l.desc);
 
     Wt::WContainerWidget *container = new Wt::WContainerWidget(group);
     Wt::WVBoxLayout *vLayout = new Wt::WVBoxLayout(container);
     vLayout->setContentsMargins(0, 0, 0, 0);
 
-    Wt::WStackedWidget *sttngs = settingsWidget();
-    vLayout->addWidget(makeLightControlToolBar(sttngs));
-    vLayout->addWidget(sttngs);
+    Wt::WStackedWidget *chgrs_widg = changersWidget();
+    vLayout->addWidget(changersToolBar(l_idx, chgrs_widg));
+    vLayout->addWidget(chgrs_widg);
 
-    menu->addItem(*p, group);
+    menu->addItem(l.nm, group);
+
+    ++l_idx;
   }
 
 #if 0
@@ -214,4 +158,6 @@ SquidLightsWidget::SquidLightsWidget() : WContainerWidget() {
   layout->addWidget(contentsStack_, 1);
   layout->setContentsMargins(0, 0, 0, 0);
 #endif
+}
+
 }
