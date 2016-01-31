@@ -165,6 +165,13 @@ void fill_dev_olaunivs() {
     cl->SetUniverseName(d.ola_univ, d.nm,
                         NewSingleCallback(&handle_ola_ack, ss));
     ss->Run();
+
+    // Set the universe merge mode to HTP (highest takes precedence). this is
+    // how multiple changers can control different DMX channels, given that they
+    // zero-out the channels they don't intend on setting.
+    cl->SetUniverseMergeMode(d.ola_univ, OlaUniverse::MERGE_HTP,
+                             NewSingleCallback(&handle_ola_ack, ss));
+    ss->Run();
   }
 }
 
