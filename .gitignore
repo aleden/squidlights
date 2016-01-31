@@ -2,7 +2,8 @@
 !.gitignore
 !.clang-format
 !changers
-!changers/*
+!changers/*.py
+!changers/*.json
 !include
 !include/*.h
 !lights
