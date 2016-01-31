@@ -14,11 +14,11 @@ struct changer_arg_t {
   CHANGER_ARG_TYPE ty;
   union {
     struct {
-      int beg, end;
-    } int_rng;
+      int x, beg, end;
+    } bounded_int;
     struct {
-      double beg, end;
-    } dbl_rng;
+      uint8_t r, g, b;
+    } color;
   };
 };
 
@@ -28,6 +28,6 @@ struct changer_t {
 };
 
 void init_changers();
-const std::vector<changer_t>& changers();
+std::vector<changer_t>& changers();
 
 }

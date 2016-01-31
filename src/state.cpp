@@ -1,14 +1,17 @@
 #include "common.h"
 #include "state.h"
 #include "light.h"
+#include "device.h"
 #include "changer.h"
 #include <vector>
 #include <algorithm>
 #include <memory>
 #include <iostream>
+#include <sstream>
 #include <boost/format.hpp>
 #include <spawn.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 using namespace std;
 namespace fs = boost::filesystem;
@@ -57,6 +60,9 @@ public:
   ~child_process() {
     if (!dead)
       kill(pid, SIGKILL);
+
+    int status;
+    waitpid(pid, &status, 0);
   }
 };
 
@@ -73,6 +79,8 @@ void init_state() {
 int light_changer(unsigned light_idx) {
   return light_chgr_map[light_idx];
 }
+
+string build_changer_squid_args(unsigned changer_idx, unsigned light_idx);
 
 void set_changer_for_light(unsigned changer_idx, unsigned light_idx) {
   light_chgr_map[light_idx] = changer_idx;
@@ -93,7 +101,7 @@ void set_changer_for_light(unsigned changer_idx, unsigned light_idx) {
     return;
   }
 
-  string argstr;
+  string argstr = build_changer_squid_args(changer_idx, light_idx);
 
   string argv0 = python_path.string();
   string argv1 = "-c";
@@ -110,8 +118,43 @@ void set_changer_for_light(unsigned changer_idx, unsigned light_idx) {
       new child_process(python_path.string(), argv));
 }
 
+string build_changer_squid_args(unsigned changer_idx, unsigned light_idx) {
+  const changer_t& chgr = changers()[changer_idx];
+  const light_t& l = lights()[light_idx];
+
+  ostringstream ss;
+
+  // the dmx ranges
+  ss << "[";
+  for (const dmx_channel_range& rng : l.rngs) {
+    ss << "(" << rng.dev->ola_univ << ", " << rng.beg << ", " << rng.end
+       << "),";
+  }
+  ss << "],";
+
+  // the arguments
+  for (const changer_arg_t& a : chgr.args) {
+    ss << a.nm << "=";
+    switch (a.ty) {
+      case CHANGER_ARG_COLOR:
+        ss << "(" << (int)a.color.r << "," << (int)a.color.g << ","
+           << (int)a.color.b << ")";
+        break;
+      case CHANGER_ARG_BOUNDED_INT:
+        ss << a.bounded_int.x;
+        break;
+    }
+    ss << ",";
+  }
+
+  return ss.str();
+}
+
 // restart light changer (e.g. due to change in arguments)
 void restart_light_changer(unsigned light_idx) {
+  assert(light_chgr_map[light_idx] >= 0);
+
+  set_changer_for_light(light_chgr_map[light_idx], light_idx);
 }
 
 }

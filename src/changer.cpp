@@ -65,8 +65,14 @@ void init_changers() {
       arg.ty = (*ty_it).second;
       switch (arg.ty) {
       case CHANGER_ARG_BOUNDED_INT:
-        arg.int_rng.beg = v.second.get<int>("beg");
-        arg.int_rng.end = v.second.get<int>("end");
+        arg.bounded_int.beg = v.second.get<int>("beg");
+        arg.bounded_int.end = v.second.get<int>("end");
+        arg.bounded_int.x = arg.bounded_int.beg;
+        break;
+      case CHANGER_ARG_COLOR:
+        arg.color.r = 0;
+        arg.color.g = 0;
+        arg.color.b = 0;
         break;
       }
 
@@ -102,7 +108,7 @@ void print_changers() {
   }
 }
 
-const std::vector<changer_t>& changers() {
+std::vector<changer_t>& changers() {
   return cl;
 }
 
