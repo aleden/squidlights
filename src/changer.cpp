@@ -26,7 +26,7 @@ void init_changers() {
   // determine number of changers
   unsigned n = 0;
   for (fs::directory_iterator it(l_dir); it != end_iter; ++it) {
-    if (!fs::is_regular_file(it->status()))
+    if (!fs::is_regular_file(it->status()) || it->path().extension() != ".json")
       continue;
 
     ++n;
@@ -36,7 +36,7 @@ void init_changers() {
 
   unsigned i = 0;
   for (fs::directory_iterator it(l_dir); it != end_iter; ++it) {
-    if (!fs::is_regular_file(it->status()))
+    if (!fs::is_regular_file(it->status()) || it->path().extension() != ".json")
       continue;
 
     changer_t& chg = cl[i];
