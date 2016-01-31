@@ -32,12 +32,14 @@ private:
   constexpr static unsigned img_size = 200;
   constexpr static unsigned circle_size = 8;
   constexpr static unsigned circle_width = 2;
+  constexpr static unsigned shadow_width = 4;
+
 public:
   ColorPickerWidget(Wt::WContainerWidget *parent = 0)
       : Wt::WPaintedWidget(parent), picked_x(-1), picked_y(-1),
         colorChanged_(this) {
     // provide a default size
-    resize(200, 200);
+    resize(img_size, img_size);
 
     mouseWentDown().connect(this, &ColorPickerWidget::mouseDown);
   }
@@ -61,6 +63,7 @@ protected:
       path.addEllipse(picked_x - circle_size / 2, picked_y - circle_size / 2,
                       circle_size, circle_size);
 
+      painter.setShadow(Wt::WShadow(0, 0, Wt::WColor(255, 255, 255, 255), shadow_width));
       Wt::WPen pen = Wt::WPen(Wt::black);
       pen.setWidth(circle_width);
       painter.strokePath(path, pen);
@@ -74,6 +77,7 @@ protected:
     picked_y = c.y;
     updateColor();
     colorChanged().emit(clr);
+
     update(Wt::PaintUpdate);
   }
 
@@ -130,6 +134,7 @@ Wt::WToolBar *changersToolBar(unsigned light_idx,
   unsigned chg_i = 0;
   for (const changer_t &chg : changers()) {
     Wt::WPushButton *btn = new Wt::WPushButton(chg.nm);
+    btn->setToolTip(chg.desc);
     btn->setCheckable(true);
 #if 0
     btn->setChecked(light_changer(light_idx) == chg_i);
@@ -216,11 +221,13 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
 #else
       ColorPickerWidget* clr_pkr = new ColorPickerWidget(group);
       clr_pkr->colorChanged().connect([=](...) {
+        state_mutex.lock();
         ap->color.r = clr_pkr->color().rgb[0];
         ap->color.g = clr_pkr->color().rgb[1];
         ap->color.b = clr_pkr->color().rgb[2];
 
         restart_light_changer(l_idx);
+        state_mutex.unlock();
       });
 #endif
       break;
