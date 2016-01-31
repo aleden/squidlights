@@ -30,18 +30,24 @@ public:
     for (const string &arg : argv) {
       argv_cmem[i].reset(new char[arg.size() + 1]);
       strcpy(argv_cmem[i].get(), arg.c_str());
+
+      ++i;
     }
 
     vector<char *> argv_flattened;
-    argv_flattened.resize(argv_cmem.size() + 1);
-    for (i = 0; i < argv_cmem.size(); ++i)
+    argv_flattened.resize(argv.size() + 1);
+    for (i = 0; i < argv.size(); ++i)
       argv_flattened[i] = argv_cmem[i].get();
-    argv_flattened[argv_flattened.size()] = NULL;
+    argv_flattened[argv_flattened.size() - 1] = NULL;
 
-    char *envp[] = {NULL};
+    cout << exe_fp;
+    for (char* arg : argv_flattened)
+      if (arg)
+        cout << " \"" << arg << '\"';
+    cout << endl;
 
     int status =
-        posix_spawn(&pid, exe_fp.c_str(), NULL, NULL, &argv_flattened[0], envp);
+        posix_spawn(&pid, exe_fp.c_str(), NULL, NULL, &argv_flattened[0], environ);
     if (status != 0) {
       cerr << "warning: failed to launch " << exe_fp << endl;
       dead = true;
@@ -74,7 +80,7 @@ void set_changer_for_light(unsigned changer_idx, unsigned light_idx) {
   const changer_t& chgr = changers()[changer_idx];
   string chgr_py = chgr.nm + ".py";
 
-  fs::path python_path("/usr/bin/python");
+  fs::path python_path("/usr/bin/python2");
   fs::path chgr_path(appdir() / "changers" / chgr_py);
 
   if (!fs::exists(python_path)) {
@@ -89,14 +95,13 @@ void set_changer_for_light(unsigned changer_idx, unsigned light_idx) {
 
   string argstr;
 
-  string argv0 = "-c";
-  string argv1 =
-      (boost::format(
-           "import sys; sys.path.insert(0, '%s'); import %s; %s.squid(%s)") %
-       (appdir() / "changers").string() % chgr.nm % chgr.nm % argstr)
+  string argv0 = python_path.string();
+  string argv1 = "-c";
+  string argv2 =
+      (boost::format("execfile('%s'); squid(%s)") % chgr_path.string() % argstr)
           .str();
 
-  list<string> argv = {argv0, argv1};
+  list<string> argv = {argv0, argv1, argv2};
 
   //
   // launch the changer
