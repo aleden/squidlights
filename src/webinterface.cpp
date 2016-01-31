@@ -12,10 +12,114 @@
 #include <Wt/WGroupBox>
 #include <Wt/WToolBar>
 #include <Wt/WImage>
+#include <Wt/WPaintedWidget>
+#include <Wt/WPainter>
 
 using namespace std;
 
 namespace squidlights {
+
+class ColorPickerWidget : public Wt::WPaintedWidget {
+public:
+  struct _color {
+    uint8_t rgb[3];
+  };
+private:
+  int picked_x, picked_y;
+  Wt::Signal<_color> colorChanged_;
+  _color clr;
+
+  constexpr static unsigned img_size = 200;
+  constexpr static unsigned circle_size = 8;
+  constexpr static unsigned circle_width = 2;
+public:
+  ColorPickerWidget(Wt::WContainerWidget *parent = 0)
+      : Wt::WPaintedWidget(parent), picked_x(-1), picked_y(-1),
+        colorChanged_(this) {
+    // provide a default size
+    resize(200, 200);
+
+    mouseWentDown().connect(this, &ColorPickerWidget::mouseDown);
+  }
+
+  const _color &color() { return clr; }
+
+  Wt::Signal<_color>& colorChanged() {
+    return colorChanged_;
+  }
+
+protected:
+  void paintEvent(Wt::WPaintDevice *paintDevice) {
+    Wt::WPainter painter(paintDevice);
+    painter.setRenderHint(Wt::WPainter::Antialiasing);
+
+    Wt::WPainter::Image image("resources/color_picker.png", img_size, img_size);
+
+    painter.drawImage(0.0, 0.0, image);
+    if (picked_x >= 0 && picked_y >= 0) {
+      Wt::WPainterPath path;
+      path.addEllipse(picked_x - circle_size / 2, picked_y - circle_size / 2,
+                      circle_size, circle_size);
+
+      Wt::WPen pen = Wt::WPen(Wt::black);
+      pen.setWidth(circle_width);
+      painter.strokePath(path, pen);
+    }
+  }
+
+  void mouseDown(const Wt::WMouseEvent &e) {
+    cout << "mouse down" << endl;
+    Wt::Coordinates c = e.widget();
+    picked_x = c.x;
+    picked_y = c.y;
+    updateColor();
+    colorChanged().emit(clr);
+    update(Wt::PaintUpdate);
+  }
+
+  void hsvToRgb(double h, double s, double v, uint8_t rgb[]) {
+    double r, g, b;
+
+    int i = int(h * 6);
+    double f = h * 6 - i;
+    double p = v * (1 - s);
+    double q = v * (1 - f * s);
+    double t = v * (1 - (1 - f) * s);
+
+    switch (i % 6) {
+    case 0:
+      r = v, g = t, b = p;
+      break;
+    case 1:
+      r = q, g = v, b = p;
+      break;
+    case 2:
+      r = p, g = v, b = t;
+      break;
+    case 3:
+      r = p, g = q, b = v;
+      break;
+    case 4:
+      r = t, g = p, b = v;
+      break;
+    case 5:
+      r = v, g = p, b = q;
+      break;
+    }
+
+    rgb[0] = r * 255;
+    rgb[1] = g * 255;
+    rgb[2] = b * 255;
+  }
+
+  void updateColor() {
+    double h = static_cast<double>(picked_x) / static_cast<double>(img_size);
+    double s = static_cast<double>(picked_y) / static_cast<double>(img_size);
+    const double v = 1.0;
+
+    hsvToRgb(h, s, v, clr.rgb);
+  }
+};
 
 Wt::WToolBar *changersToolBar(unsigned light_idx,
                               Wt::WStackedWidget *chgrs_widg) {
@@ -60,41 +164,6 @@ Wt::WToolBar *changersToolBar(unsigned light_idx,
   return toolBar;
 }
 
-static void hsvToRgb(double h, double s, double v, uint8_t rgb[]) {
-  double r, g, b;
-
-  int i = int(h * 6);
-  double f = h * 6 - i;
-  double p = v * (1 - s);
-  double q = v * (1 - f * s);
-  double t = v * (1 - (1 - f) * s);
-
-  switch (i % 6) {
-  case 0:
-    r = v, g = t, b = p;
-    break;
-  case 1:
-    r = q, g = v, b = p;
-    break;
-  case 2:
-    r = p, g = v, b = t;
-    break;
-  case 3:
-    r = p, g = q, b = v;
-    break;
-  case 4:
-    r = t, g = p, b = v;
-    break;
-  case 5:
-    r = v, g = p, b = q;
-    break;
-  }
-
-  rgb[0] = r * 255;
-  rgb[1] = g * 255;
-  rgb[2] = b * 255;
-}
-
 Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
   Wt::WContainerWidget *container = new Wt::WContainerWidget();
   Wt::WVBoxLayout *vLayout = new Wt::WVBoxLayout();
@@ -104,9 +173,11 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
 
     switch (a.ty) {
     case CHANGER_ARG_COLOR: {
+      changer_arg_t* ap = &a;
+#if 0
       Wt::WImage *img =
           new Wt::WImage(Wt::WLink("resources/color_picker.png"), group);
-      changer_arg_t* ap = &a;
+#if 0
       img->clicked().connect([=](const Wt::WMouseEvent &e) {
         cout << "clicked at [" << e.widget().x << "," << e.widget().y << ")"
              << endl;
@@ -140,7 +211,18 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
 
         restart_light_changer(l_idx);
       });
+#endif
       img->setMaximumSize(200, 200);
+#else
+      ColorPickerWidget* clr_pkr = new ColorPickerWidget(group);
+      clr_pkr->colorChanged().connect([=](...) {
+        ap->color.r = clr_pkr->color().rgb[0];
+        ap->color.g = clr_pkr->color().rgb[1];
+        ap->color.b = clr_pkr->color().rgb[2];
+
+        restart_light_changer(l_idx);
+      });
+#endif
       break;
     }
 
