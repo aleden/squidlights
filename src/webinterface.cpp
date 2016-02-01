@@ -32,9 +32,7 @@ public:
   constexpr static int steps = 32;
   constexpr static int img_w = 512;
   constexpr static int img_h = 128;
-  constexpr static int shadow_width = 8;
-  constexpr static int line_length = 8;
-  constexpr static int line_width = 2;
+  constexpr static int line_width = 1;
 
   // saturation "step"
   int ss;
@@ -53,7 +51,8 @@ public:
     // provide a default size
     resize(img_w, img_h);
 
-    mouseWentUp().connect(this, &ColorViewWidget::mouse);
+    mouseWentUp().connect(this, &ColorViewWidget::mouseUp);
+    mouseDragged().connect(this, &ColorViewWidget::mouseDrag);
   }
 
   const _color &color() { return clr; }
@@ -84,22 +83,40 @@ protected:
     painter.drawImage(0.0, 0.0, image);
     if (picked_x >= 0 && picked_y >= 0) {
       painter.setShadow(
-          Wt::WShadow(0, 0, Wt::WColor(0, 0, 0, 255), shadow_width));
-      Wt::WPen pen = Wt::WPen(Wt::WColor(255, 255, 255, 255));
+          Wt::WShadow(0, 0, Wt::WColor(255 - clr.rgb[0], 255 - clr.rgb[1], 255 - clr.rgb[2], 255), 3.0));
+      Wt::WPen pen = Wt::WPen(Wt::WColor(255 - clr.rgb[0], 255 - clr.rgb[1], 255 - clr.rgb[2], 255));
       pen.setWidth(line_width);
       painter.setPen(pen);
+#if 0
       painter.drawLine(max<double>(picked_x - line_length, 0), picked_y,
                        min<double>(picked_x + line_length, img_w), picked_y);
       painter.drawLine(picked_x, max<double>(picked_y - line_length, 0),
                        picked_x, min<double>(picked_y + line_length, img_h));
+#else
+      painter.drawLine(picked_x, 0, picked_x, img_h);
+#endif
     }
   }
 
-  void mouse(const Wt::WMouseEvent &e) {
+  void mouseUp(const Wt::WMouseEvent &e) {
     Wt::Coordinates c = e.widget();
     picked_x = c.x;
     picked_y = c.y;
     updateColor();
+  }
+
+  void mouseDrag(const Wt::WMouseEvent &e) {
+    Wt::Coordinates c = e.widget();
+    picked_x = c.x;
+    picked_y = c.y;
+
+    double h = static_cast<double>(picked_x) / static_cast<double>(img_w);
+    double s = static_cast<double>(ss) / static_cast<double>(steps);
+    double v = static_cast<double>(vs) / static_cast<double>(steps);
+
+    hsvToRgb(h, s, v, clr.rgb);
+
+    update(Wt::PaintUpdate);
   }
 
   void hsvToRgb(double h, double s, double v, uint8_t rgb[]) {
