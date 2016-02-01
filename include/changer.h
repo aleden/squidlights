@@ -4,10 +4,7 @@
 
 namespace squidlights {
 
-enum CHANGER_ARG_TYPE {
-  CHANGER_ARG_COLOR,
-  CHANGER_ARG_BOUNDED_INT
-};
+enum CHANGER_ARG_TYPE { CHANGER_ARG_COLOR, CHANGER_ARG_BOUNDED_INT };
 
 struct changer_arg_t {
   std::string nm, desc;
@@ -28,6 +25,5 @@ struct changer_t {
 };
 
 void init_changers();
-std::vector<changer_t>& changers();
-
+std::vector<changer_t> &changers();
 }

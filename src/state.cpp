@@ -44,13 +44,13 @@ public:
     argv_flattened[argv_flattened.size() - 1] = NULL;
 
     cout << exe_fp;
-    for (char* arg : argv_flattened)
+    for (char *arg : argv_flattened)
       if (arg)
         cout << " \"" << arg << '\"';
     cout << endl;
 
-    int status =
-        posix_spawn(&pid, exe_fp.c_str(), NULL, NULL, &argv_flattened[0], environ);
+    int status = posix_spawn(&pid, exe_fp.c_str(), NULL, NULL,
+                             &argv_flattened[0], environ);
     if (status != 0) {
       cerr << "warning: failed to launch " << exe_fp << endl;
       dead = true;
@@ -76,9 +76,7 @@ void init_state() {
   fill(light_chgr_map.begin(), light_chgr_map.end(), -1);
 }
 
-int light_changer(unsigned light_idx) {
-  return light_chgr_map[light_idx];
-}
+int light_changer(unsigned light_idx) { return light_chgr_map[light_idx]; }
 
 string build_changer_squid_args(unsigned changer_idx, unsigned light_idx);
 
@@ -88,7 +86,7 @@ void set_changer_for_light(unsigned changer_idx, unsigned light_idx) {
 
 void run_light_changer(unsigned light_idx) {
   int changer_idx = light_changer(light_idx);
-  const changer_t& chgr =  changers()[changer_idx];
+  const changer_t &chgr = changers()[changer_idx];
   string chgr_py = chgr.nm + ".py";
 
   fs::path python_path("/usr/bin/python2");
@@ -108,9 +106,8 @@ void run_light_changer(unsigned light_idx) {
 
   string argv0 = python_path.string();
   string argv1 = "-c";
-  string argv2 =
-      (boost::format("execfile('%s'); squid(%s)") % chgr_path.string() % argstr)
-          .str();
+  string argv2 = (boost::format("execfile('%s'); squid(%s)") %
+                  chgr_path.string() % argstr).str();
 
   list<string> argv = {argv0, argv1, argv2};
 
@@ -122,35 +119,34 @@ void run_light_changer(unsigned light_idx) {
 }
 
 string build_changer_squid_args(unsigned changer_idx, unsigned light_idx) {
-  const changer_t& chgr = changers()[changer_idx];
-  const light_t& l = lights()[light_idx];
+  const changer_t &chgr = changers()[changer_idx];
+  const light_t &l = lights()[light_idx];
 
   ostringstream ss;
 
   // the dmx ranges
   ss << "[";
-  for (const dmx_channel_range& rng : l.rngs) {
+  for (const dmx_channel_range &rng : l.rngs) {
     ss << "(" << rng.dev->ola_univ << ", " << rng.beg << ", " << rng.end
        << "),";
   }
   ss << "],";
 
   // the arguments
-  for (const changer_arg_t& a : chgr.args) {
+  for (const changer_arg_t &a : chgr.args) {
     ss << a.nm << "=";
     switch (a.ty) {
-      case CHANGER_ARG_COLOR:
-        ss << "(" << (int)a.color.r << "," << (int)a.color.g << ","
-           << (int)a.color.b << ")";
-        break;
-      case CHANGER_ARG_BOUNDED_INT:
-        ss << a.bounded_int.x;
-        break;
+    case CHANGER_ARG_COLOR:
+      ss << "(" << (int)a.color.r << "," << (int)a.color.g << ","
+         << (int)a.color.b << ")";
+      break;
+    case CHANGER_ARG_BOUNDED_INT:
+      ss << a.bounded_int.x;
+      break;
     }
     ss << ",";
   }
 
   return ss.str();
 }
-
 }

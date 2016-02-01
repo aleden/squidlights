@@ -12,5 +12,4 @@ fs::path appdir() {
   string str(buf, size);
   return fs::canonical(fs::path(str).parent_path().parent_path());
 }
-
 }

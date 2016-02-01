@@ -16,5 +16,4 @@ void set_changer_for_light(unsigned changer_idx, unsigned light_idx);
 
 // run light changer
 void run_light_changer(unsigned light_idx);
-
 }

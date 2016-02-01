@@ -3,5 +3,4 @@
 namespace squidlights {
 
 boost::filesystem::path appdir();
-
 }

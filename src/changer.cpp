@@ -39,7 +39,7 @@ void init_changers() {
     if (!fs::is_regular_file(it->status()) || it->path().extension() != ".json")
       continue;
 
-    changer_t& chg = cl[i];
+    changer_t &chg = cl[i];
     chg.nm = it->path().stem().string();
 
     pt::ptree pt;
@@ -90,13 +90,10 @@ void init_changer_arg_type_map() {
   chang_arg_ty_map["int"] = CHANGER_ARG_BOUNDED_INT;
 }
 
-const char* chang_arg_ty_string_map[] = {
-  "color",
-  "int"
-};
+const char *chang_arg_ty_string_map[] = {"color", "int"};
 
 void print_changers() {
-  for (const changer_t& chg : cl) {
+  for (const changer_t &chg : cl) {
     cout << "changer " << chg.nm << endl;
     cout << "  description: " << chg.desc << endl;
     if (!chg.args.empty()) {
@@ -108,8 +105,5 @@ void print_changers() {
   }
 }
 
-std::vector<changer_t>& changers() {
-  return cl;
-}
-
+std::vector<changer_t> &changers() { return cl; }
 }

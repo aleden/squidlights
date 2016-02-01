@@ -21,7 +21,7 @@ using namespace std;
 namespace squidlights {
 
 Wt::WApplication *createApplication(const Wt::WEnvironment &env) {
-  WApplication* app = new Wt::WApplication(env);
+  WApplication *app = new Wt::WApplication(env);
 
   cout << "squidlights::createApplication" << endl;
 
@@ -63,7 +63,6 @@ Wt::WApplication *createApplication(const Wt::WEnvironment &env) {
 
   return app;
 }
-
 }
 
 int main(int argc, char **argv) {

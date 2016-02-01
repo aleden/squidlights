@@ -8,7 +8,7 @@ namespace squidlights {
 struct device_t;
 
 struct dmx_channel_range {
-  device_t* dev;
+  device_t *dev;
   unsigned beg;
   unsigned end;
 };
@@ -19,6 +19,5 @@ struct light_t {
 };
 
 void init_lights();
-const std::vector<light_t>& lights();
-
+const std::vector<light_t> &lights();
 }

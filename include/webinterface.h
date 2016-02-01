@@ -3,10 +3,8 @@
 
 namespace squidlights {
 
-class SquidLightsWidget : public Wt::WContainerWidget
-{
+class SquidLightsWidget : public Wt::WContainerWidget {
 public:
   SquidLightsWidget();
 };
-
 }

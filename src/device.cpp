@@ -30,8 +30,8 @@ namespace squidlights {
 
 static std::vector<device_t> dl;
 
-static unordered_map<string, device_t*> ipaddr_to_dev_map;
-static unordered_map<string, device_t*> nm_to_dev_map;
+static unordered_map<string, device_t *> ipaddr_to_dev_map;
+static unordered_map<string, device_t *> nm_to_dev_map;
 
 static void fill_ip_dev_map();
 static void fill_dev_olaunivs();
@@ -43,7 +43,7 @@ void init_devices() {
   fill_dev_nm_map();
 }
 
-static string read_text_file(const string& fp);
+static string read_text_file(const string &fp);
 
 void fill_ip_dev_map() {
   fs::path dev_dir(appdir() / "devices");
@@ -126,7 +126,7 @@ void fill_dev_olaunivs() {
   ss->Run();
 
   // verify all devices were found in fill_dev_olaports
-  for (device_t& d : dl) {
+  for (device_t &d : dl) {
     if (d.ola_univ)
       continue;
 
@@ -136,13 +136,9 @@ void fill_dev_olaunivs() {
   //
   // unpatch KiNet ports
   //
-  for (device_t& d : dl) {
-    cl->Patch(ola_kinetdev_alias,
-              d.ola_port,
-              ola::client::OUTPUT_PORT,
-              ola::client::UNPATCH,
-              0,
-              NewSingleCallback(&handle_ola_ack, ss));
+  for (device_t &d : dl) {
+    cl->Patch(ola_kinetdev_alias, d.ola_port, ola::client::OUTPUT_PORT,
+              ola::client::UNPATCH, 0, NewSingleCallback(&handle_ola_ack, ss));
     ss->Run();
   }
 
@@ -150,14 +146,11 @@ void fill_dev_olaunivs() {
   // patch KiNet ports
   //
   unsigned int ola_univ = 1;
-  for (device_t& d : dl) {
+  for (device_t &d : dl) {
     d.ola_univ = ola_univ++;
 
-    cl->Patch(ola_kinetdev_alias,
-              d.ola_port,
-              ola::client::OUTPUT_PORT,
-              ola::client::PATCH,
-              d.ola_univ,
+    cl->Patch(ola_kinetdev_alias, d.ola_port, ola::client::OUTPUT_PORT,
+              ola::client::PATCH, d.ola_univ,
               NewSingleCallback(&handle_ola_ack, ss));
     ss->Run();
 
@@ -183,9 +176,8 @@ void handle_ola_ack(SelectServer *ss, const Result &result) {
   ss->Terminate();
 }
 
-void fill_dev_olaports(SelectServer *ss,
-                    const Result &result,
-                    const vector <OlaDevice> &devices) {
+void fill_dev_olaports(SelectServer *ss, const Result &result,
+                       const vector<OlaDevice> &devices) {
   if (!result.Success()) {
     cerr << result.Error() << endl;
     abort();
@@ -222,17 +214,12 @@ void fill_dev_olaports(SelectServer *ss,
   ss->Terminate();
 }
 
-const std::vector<device_t>& devices() {
-  return dl;
-}
+const std::vector<device_t> &devices() { return dl; }
 
 void fill_dev_nm_map() {
-  for (device_t& d : dl)
+  for (device_t &d : dl)
     nm_to_dev_map[d.nm] = &d;
 }
 
-device_t* device_by_name(const std::string& nm) {
-  return nm_to_dev_map[nm];
-}
-
+device_t *device_by_name(const std::string &nm) { return nm_to_dev_map[nm]; }
 }
