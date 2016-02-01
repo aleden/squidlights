@@ -23,6 +23,7 @@ def SendDMXFrame():
     # figure out weighting for each color during this frame.
     # weighting elements should sum to 1.0 in this script 
     # (if they didn't, color intensity as well as hue would change with time)
+    global TIME_ELAPSED
     if TIME_ELAPSED < half_width:
         weighting = np.array([(half_width-TIME_ELAPSED)/half_width, TIME_ELAPSED/half_width])
     else:
@@ -48,7 +49,6 @@ def SendDMXFrame():
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
     # store relevant state for next frame calculation
-    global TIME_ELAPSED
     TIME_ELAPSED = math.fmod((TIME_ELAPSED + TICK_INTERVAL), period)
 
 def squid(dmxrngs, begclr, endclr, delta_t):

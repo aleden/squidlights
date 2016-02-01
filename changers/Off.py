@@ -5,8 +5,8 @@ from ola.ClientWrapper import ClientWrapper
 TICK_INTERVAL = 3000  # in ms
 
 def DmxSent(state):
-  if not state.Succeeded():
-    wrapper.Stop()
+    if not state.Succeeded():
+        wrapper.Stop()
 
 def SendDMXFrame():
   # schdule a function call in the future
@@ -14,16 +14,16 @@ def SendDMXFrame():
   wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
 
   for rng in rngs:
-    wrapper.Client().SendDmx(rng[0], data, DmxSent)
+      wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
 def squid(dmxrngs):
-  global rngs
-  rngs = dmxrngs
+    global rngs
+    rngs = dmxrngs
 
-  global data
-  data = array.array('B', [0] * 512)
+    global data
+    data = array.array('B', [0] * 512)
 
-  global wrapper
-  wrapper = ClientWrapper()
-  SendDMXFrame()
-  wrapper.Run()
+    global wrapper
+    wrapper = ClientWrapper()
+    SendDMXFrame()
+    wrapper.Run()
