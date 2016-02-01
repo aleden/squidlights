@@ -14,34 +14,45 @@
 #include <Wt/WImage>
 #include <Wt/WPaintedWidget>
 #include <Wt/WPainter>
+#include <Wt/WSlider>
+#include <tuple>
+#include <boost/format.hpp>
+#include <algorithm>
 
 using namespace std;
 
 namespace squidlights {
 
-class ColorPickerWidget : public Wt::WPaintedWidget {
+class ColorViewWidget : public Wt::WPaintedWidget {
 public:
   struct _color {
     uint8_t rgb[3];
   };
-private:
+
+  constexpr static int steps = 32;
+  constexpr static int img_w = 512;
+  constexpr static int img_h = 128;
+  constexpr static int shadow_width = 8;
+  constexpr static int line_length = 6;
+
+  // saturation "step"
+  int ss;
+
+  // value "step"
+  int vs;
+
   int picked_x, picked_y;
   Wt::Signal<_color> colorChanged_;
   _color clr;
 
-  constexpr static unsigned img_size = 200;
-  constexpr static unsigned circle_size = 8;
-  constexpr static unsigned circle_width = 2;
-  constexpr static unsigned shadow_width = 4;
-
 public:
-  ColorPickerWidget(Wt::WContainerWidget *parent = 0)
-      : Wt::WPaintedWidget(parent), picked_x(-1), picked_y(-1),
+  ColorViewWidget(Wt::WContainerWidget *parent = 0)
+      : Wt::WPaintedWidget(parent), ss(steps-1), vs(steps-1), picked_x(img_w/2), picked_y(img_h/2),
         colorChanged_(this) {
     // provide a default size
-    resize(img_size, img_size);
+    resize(img_w, img_h);
 
-    mouseWentDown().connect(this, &ColorPickerWidget::mouseDown);
+    mouseWentUp().connect(this, &ColorViewWidget::mouse);
   }
 
   const _color &color() { return clr; }
@@ -50,35 +61,38 @@ public:
     return colorChanged_;
   }
 
+  void saturationChange(int i) {
+    ss = i;
+    updateColor();
+  }
+
+  void valueChange(int i) {
+    vs = i;
+    updateColor();
+  }
+
 protected:
   void paintEvent(Wt::WPaintDevice *paintDevice) {
     Wt::WPainter painter(paintDevice);
     painter.setRenderHint(Wt::WPainter::Antialiasing);
 
-    Wt::WPainter::Image image("resources/color_picker.png", img_size, img_size);
+    Wt::WPainter::Image image(
+        (boost::format("resources/color_picker/%d-%d.png") % ss % vs).str(),
+        img_w, img_h);
 
     painter.drawImage(0.0, 0.0, image);
     if (picked_x >= 0 && picked_y >= 0) {
-      Wt::WPainterPath path;
-      path.addEllipse(picked_x - circle_size / 2, picked_y - circle_size / 2,
-                      circle_size, circle_size);
-
-      painter.setShadow(Wt::WShadow(0, 0, Wt::WColor(255, 255, 255, 255), shadow_width));
-      Wt::WPen pen = Wt::WPen(Wt::black);
-      pen.setWidth(circle_width);
-      painter.strokePath(path, pen);
+      painter.setShadow(Wt::WShadow(0, 0, Wt::WColor(0, 0, 0, 255), shadow_width));
+      painter.drawLine(max<double>(picked_x - line_length, 0), picked_y, min<double>(picked_x + line_length, img_w), picked_y);
+      painter.drawLine(picked_x, max<double>(picked_y - line_length, 0), picked_x, min<double>(picked_y + line_length, img_h));
     }
   }
 
-  void mouseDown(const Wt::WMouseEvent &e) {
-    cout << "mouse down" << endl;
+  void mouse(const Wt::WMouseEvent &e) {
     Wt::Coordinates c = e.widget();
     picked_x = c.x;
     picked_y = c.y;
     updateColor();
-    colorChanged().emit(clr);
-
-    update(Wt::PaintUpdate);
   }
 
   void hsvToRgb(double h, double s, double v, uint8_t rgb[]) {
@@ -117,13 +131,56 @@ protected:
   }
 
   void updateColor() {
-    double h = static_cast<double>(picked_x) / static_cast<double>(img_size);
-    double s = static_cast<double>(picked_y) / static_cast<double>(img_size);
-    const double v = 1.0;
+    double h = static_cast<double>(picked_x) / static_cast<double>(img_w);
+    double s = static_cast<double>(ss) / static_cast<double>(steps);
+    double v = static_cast<double>(vs) / static_cast<double>(steps);
 
     hsvToRgb(h, s, v, clr.rgb);
+
+    update(Wt::PaintUpdate);
+
+    colorChanged().emit(clr);
   }
 };
+
+tuple<Wt::WContainerWidget *, ColorViewWidget *>
+colorPickerWidget(Wt::WContainerWidget *parent = nullptr) {
+  Wt::WContainerWidget* cntr = new Wt::WContainerWidget(parent);
+  cntr->resize(ColorViewWidget::img_w, Wt::WLength::Auto);
+
+  Wt::WVBoxLayout *layout = new Wt::WVBoxLayout();
+
+  ColorViewWidget* clrvwidg = new ColorViewWidget();
+  layout->addWidget(clrvwidg);
+
+  Wt::WSlider* satsld = new Wt::WSlider(Wt::Horizontal);
+  satsld->setToolTip("Saturation");
+  satsld->resize(ColorViewWidget::img_w, 50);
+  satsld->setRange(0, ColorViewWidget::steps - 1);
+  satsld->setValue(clrvwidg->ss);
+#if 0
+  satsld->valueChanged().connect(clrvwidg, &ColorViewWidget::saturationChange);
+#else
+  satsld->sliderMoved().connect(clrvwidg, &ColorViewWidget::saturationChange);
+#endif
+  layout->addWidget(satsld);
+
+  Wt::WSlider* valsld = new Wt::WSlider(Wt::Horizontal);
+  valsld->setToolTip("Value");
+  valsld->resize(ColorViewWidget::img_w, 50);
+  valsld->setRange(0, ColorViewWidget::steps - 1);
+  valsld->setValue(clrvwidg->vs);
+#if 0
+  valsld->valueChanged().connect(clrvwidg, &ColorViewWidget::valueChange);
+#else
+  valsld->sliderMoved().connect(clrvwidg, &ColorViewWidget::valueChange);
+#endif
+  layout->addWidget(valsld);
+
+  cntr->setLayout(layout);
+
+  return make_tuple(cntr, clrvwidg);
+}
 
 Wt::WToolBar *changersToolBar(unsigned light_idx,
                               Wt::WStackedWidget *chgrs_widg) {
@@ -219,12 +276,14 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
 #endif
       img->setMaximumSize(200, 200);
 #else
-      ColorPickerWidget* clr_pkr = new ColorPickerWidget(group);
-      clr_pkr->colorChanged().connect([=](...) {
+      Wt::WContainerWidget* contw;
+      ColorViewWidget* clrpckv;
+      tie(contw, clrpckv) = colorPickerWidget(group);
+      clrpckv->colorChanged().connect([=](...) {
         state_mutex.lock();
-        ap->color.r = clr_pkr->color().rgb[0];
-        ap->color.g = clr_pkr->color().rgb[1];
-        ap->color.b = clr_pkr->color().rgb[2];
+        ap->color.r = clrpckv->color().rgb[0];
+        ap->color.g = clrpckv->color().rgb[1];
+        ap->color.b = clrpckv->color().rgb[2];
 
         restart_light_changer(l_idx);
         state_mutex.unlock();
