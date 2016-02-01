@@ -17,3 +17,9 @@
 !src/*.cpp
 !style
 !build
+!.ola
+!.ola/ola-kinet.conf
+!.config
+!.config/systemd
+!.config/systemd/user
+!.config/systemd/user/*.service

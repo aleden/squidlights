@@ -1,0 +1,12 @@
+[Unit]
+Description=squidlights (successor to squidnet)
+Requires=olad.service
+
+[Service]
+ExecStart=/home/squidlights/build/squidlights --docroot /home/squidlights --http-address 0.0.0.0 --http-port 7070 --pid-file /home/squidlights/build/squidlights.pid
+PIDFile=/home/squidlights/build/squidlights.pid
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
