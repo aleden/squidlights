@@ -204,6 +204,8 @@ Wt::WToolBar *changersToolBar(unsigned light_idx,
       state_mutex.lock();
 
       set_changer_for_light(chg_i, light_idx);
+      if (changers()[chg_i].args.empty())
+        run_light_changer(light_idx);
 
       for (unsigned btn_i = 0; btn_i < toolBar->count(); ++btn_i) {
         if (btn_i == chg_i)
