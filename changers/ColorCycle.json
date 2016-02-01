@@ -9,5 +9,12 @@
     {
         "type": "color",
         "desc": "End color"
+    },
+    "delta_t":
+    {
+        "type": "int",
+        "desc": "Cycle period (ms)",
+        "beg": "222",
+        "end": "22222"
     }
 }
