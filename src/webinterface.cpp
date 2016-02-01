@@ -33,7 +33,8 @@ public:
   constexpr static int img_w = 512;
   constexpr static int img_h = 128;
   constexpr static int shadow_width = 8;
-  constexpr static int line_length = 6;
+  constexpr static int line_length = 8;
+  constexpr static int line_width = 2;
 
   // saturation "step"
   int ss;
@@ -47,7 +48,7 @@ public:
 
 public:
   ColorViewWidget(Wt::WContainerWidget *parent = 0)
-      : Wt::WPaintedWidget(parent), ss(steps-1), vs(steps-1), picked_x(img_w/2), picked_y(img_h/2),
+      : Wt::WPaintedWidget(parent), ss(steps-1), vs(steps-1), picked_x(-1), picked_y(-1),
         colorChanged_(this) {
     // provide a default size
     resize(img_w, img_h);
@@ -82,9 +83,15 @@ protected:
 
     painter.drawImage(0.0, 0.0, image);
     if (picked_x >= 0 && picked_y >= 0) {
-      painter.setShadow(Wt::WShadow(0, 0, Wt::WColor(0, 0, 0, 255), shadow_width));
-      painter.drawLine(max<double>(picked_x - line_length, 0), picked_y, min<double>(picked_x + line_length, img_w), picked_y);
-      painter.drawLine(picked_x, max<double>(picked_y - line_length, 0), picked_x, min<double>(picked_y + line_length, img_h));
+      painter.setShadow(
+          Wt::WShadow(0, 0, Wt::WColor(0, 0, 0, 255), shadow_width));
+      Wt::WPen pen = Wt::WPen(Wt::WColor(255, 255, 255, 255));
+      pen.setWidth(line_width);
+      painter.setPen(pen);
+      painter.drawLine(max<double>(picked_x - line_length, 0), picked_y,
+                       min<double>(picked_x + line_length, img_w), picked_y);
+      painter.drawLine(picked_x, max<double>(picked_y - line_length, 0),
+                       picked_x, min<double>(picked_y + line_length, img_h));
     }
   }
 
@@ -155,7 +162,7 @@ colorPickerWidget(Wt::WContainerWidget *parent = nullptr) {
 
   Wt::WSlider* satsld = new Wt::WSlider(Wt::Horizontal);
   satsld->setToolTip("Saturation");
-  satsld->resize(ColorViewWidget::img_w, 50);
+  satsld->resize(ColorViewWidget::img_w, 30);
   satsld->setRange(0, ColorViewWidget::steps - 1);
   satsld->setValue(clrvwidg->ss);
 #if 0
@@ -167,7 +174,7 @@ colorPickerWidget(Wt::WContainerWidget *parent = nullptr) {
 
   Wt::WSlider* valsld = new Wt::WSlider(Wt::Horizontal);
   valsld->setToolTip("Value");
-  valsld->resize(ColorViewWidget::img_w, 50);
+  valsld->resize(ColorViewWidget::img_w, 30);
   valsld->setRange(0, ColorViewWidget::steps - 1);
   valsld->setValue(clrvwidg->vs);
 #if 0
@@ -185,8 +192,6 @@ colorPickerWidget(Wt::WContainerWidget *parent = nullptr) {
 Wt::WToolBar *changersToolBar(unsigned light_idx,
                               Wt::WStackedWidget *chgrs_widg) {
   Wt::WToolBar *toolBar = new Wt::WToolBar();
-
-  state_mutex.lock();
 
   unsigned chg_i = 0;
   for (const changer_t &chg : changers()) {
@@ -221,8 +226,6 @@ Wt::WToolBar *changersToolBar(unsigned light_idx,
     ++chg_i;
   }
 
-  state_mutex.unlock();
-
   return toolBar;
 }
 
@@ -232,10 +235,10 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
 
   for (changer_arg_t &a : chg.args) {
     Wt::WGroupBox *group = new Wt::WGroupBox(a.desc);
+    changer_arg_t* ap = &a;
 
     switch (a.ty) {
     case CHANGER_ARG_COLOR: {
-      changer_arg_t* ap = &a;
 #if 0
       Wt::WImage *img =
           new Wt::WImage(Wt::WLink("resources/color_picker.png"), group);
@@ -254,7 +257,7 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
         ap->color.g = rgb[1];
         ap->color.b = rgb[2];
 
-        restart_light_changer(l_idx);
+        run_light_changer(l_idx);
       });
 
       img->mouseDragged().connect([=](const Wt::WMouseEvent &e) {
@@ -271,7 +274,7 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
         ap->color.g = rgb[1];
         ap->color.b = rgb[2];
 
-        restart_light_changer(l_idx);
+        run_light_changer(l_idx);
       });
 #endif
       img->setMaximumSize(200, 200);
@@ -279,16 +282,58 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
       Wt::WContainerWidget* contw;
       ColorViewWidget* clrpckv;
       tie(contw, clrpckv) = colorPickerWidget(group);
+      clrpckv->setToolTip("Hue");
       clrpckv->colorChanged().connect([=](...) {
         state_mutex.lock();
         ap->color.r = clrpckv->color().rgb[0];
         ap->color.g = clrpckv->color().rgb[1];
         ap->color.b = clrpckv->color().rgb[2];
 
-        restart_light_changer(l_idx);
+        run_light_changer(l_idx);
         state_mutex.unlock();
       });
 #endif
+      break;
+    }
+
+    case CHANGER_ARG_BOUNDED_INT: {
+      Wt::WContainerWidget* cntr = new Wt::WContainerWidget(group);
+      cntr->resize(ColorViewWidget::img_w, Wt::WLength::Auto);
+
+      Wt::WVBoxLayout *layout = new Wt::WVBoxLayout();
+
+      Wt::WSlider *intsld = new Wt::WSlider(Wt::Horizontal);
+      layout->addWidget(intsld);
+
+      intsld->setToolTip((boost::format("[%d, %d)") % a.bounded_int.beg %
+                          a.bounded_int.end).str());
+      intsld->resize(ColorViewWidget::img_w, 50);
+      intsld->setRange(a.bounded_int.beg, a.bounded_int.end);
+      intsld->setValue(a.bounded_int.beg);
+#if 1
+      intsld->valueChanged().connect([=](...) {
+        state_mutex.lock();
+        ap->bounded_int.x = intsld->value();
+        run_light_changer(l_idx);
+        state_mutex.unlock();
+      });
+#endif
+
+      Wt::WText *intsld_lbl =
+          new Wt::WText((boost::format("%d") % intsld->value()).str(), group);
+      layout->addWidget(intsld_lbl);
+
+#if 0
+      intsld->sliderMoved().connect([=](...) {
+        intsld_lbl->setText((boost::format("%d") % intsld->value()).str());
+      });
+#else
+      intsld->sliderMoved().connect(std::bind([=] (int new_val) {
+        intsld_lbl->setText((boost::format("%d") % new_val).str());
+      }, std::placeholders::_1));
+#endif
+
+      cntr->setLayout(layout);
       break;
     }
 

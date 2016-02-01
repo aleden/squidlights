@@ -14,7 +14,7 @@ int light_changer(unsigned light_idx);
 // set what changer is active for a light
 void set_changer_for_light(unsigned changer_idx, unsigned light_idx);
 
-// restart light changer (e.g. due to change in arguments)
-void restart_light_changer(unsigned light_idx);
+// run light changer
+void run_light_changer(unsigned light_idx);
 
 }

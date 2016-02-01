@@ -84,8 +84,11 @@ string build_changer_squid_args(unsigned changer_idx, unsigned light_idx);
 
 void set_changer_for_light(unsigned changer_idx, unsigned light_idx) {
   light_chgr_map[light_idx] = changer_idx;
+}
 
-  const changer_t& chgr = changers()[changer_idx];
+void run_light_changer(unsigned light_idx) {
+  int changer_idx = light_changer(light_idx);
+  const changer_t& chgr =  changers()[changer_idx];
   string chgr_py = chgr.nm + ".py";
 
   fs::path python_path("/usr/bin/python2");
@@ -148,13 +151,6 @@ string build_changer_squid_args(unsigned changer_idx, unsigned light_idx) {
   }
 
   return ss.str();
-}
-
-// restart light changer (e.g. due to change in arguments)
-void restart_light_changer(unsigned light_idx) {
-  assert(light_chgr_map[light_idx] >= 0);
-
-  set_changer_for_light(light_chgr_map[light_idx], light_idx);
 }
 
 }

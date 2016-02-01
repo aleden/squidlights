@@ -13,6 +13,9 @@
 !Makefile
 !README.md
 !resources
+!resources/*
+!resources/color_picker
+!resources/color_picker/*
 !src
 !src/*.cpp
 !style
