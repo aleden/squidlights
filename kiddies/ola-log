@@ -1,0 +1,3 @@
+#!/bin/sh
+pid=$(pgrep --pidfile /home/squidlights/build/olad.pid)
+sudo journalctl --reverse _PID=$pid
