@@ -1,20 +1,18 @@
 import array
 import collections
+import threading
 from ola.ClientWrapper import ClientWrapper
 
-TICK_INTERVAL = 3000  # in ms
+TICK_INTERVAL = 10.0  # in s
 
 def DmxSent(state):
     if not state.Succeeded():
-        wrapper.Stop()
+        sys.exit(1)
 
 def SendDMXFrame():
-  # schdule a function call in the future
-  # we do this first in case the frame computation takes a long time.
-  wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
-
-  for rng in rngs:
-      wrapper.Client().SendDmx(rng[0], data, DmxSent)
+    for rng in rngs:
+	wrapper.Client().SendDmx(rng[0], data, DmxSent)
+    threading.Timer(TICK_INTERVAL, SendDMXFrame).start()
 
 def squid(dmxrngs):
     global rngs
@@ -25,5 +23,5 @@ def squid(dmxrngs):
 
     global wrapper
     wrapper = ClientWrapper()
+
     SendDMXFrame()
-    wrapper.Run()

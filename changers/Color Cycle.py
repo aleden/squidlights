@@ -1,6 +1,7 @@
 import array
 import numpy as np
 import math
+import threading
 from ola.ClientWrapper import ClientWrapper
 
 # globals for timing, script state storage
@@ -11,13 +12,9 @@ TIME_ELAPSED = 0.0  # time in ms since we last displaed begclr
 
 def DmxSent(state):
     if not state.Succeeded():
-        wrapper.Stop()
+        sys.exit(1)
 
 def SendDMXFrame():
-    # schedule a function call in the future
-    # we do this first in case the frame computation takes a long time.
-    wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
-
     # calculate values to display
 
     # figure out weighting for each color during this frame.
@@ -51,6 +48,8 @@ def SendDMXFrame():
     # store relevant state for next frame calculation
     TIME_ELAPSED = math.fmod((TIME_ELAPSED + TICK_INTERVAL), period)
 
+    threading.Timer((1.0/1000.0)*float(TICK_INTERVAL), SendDMXFrame).start()
+
 def squid(dmxrngs, begclr, endclr, delta_t):
     # arrange beginning and ending RGB colors into a matrix
     # which looks like [begclr,
@@ -69,6 +68,5 @@ def squid(dmxrngs, begclr, endclr, delta_t):
 
     global wrapper
     wrapper = ClientWrapper()
+
     SendDMXFrame()
-    # initiate main loop
-    wrapper.Run()
