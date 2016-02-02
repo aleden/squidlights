@@ -196,6 +196,9 @@ Wt::WToolBar *changersToolBar(unsigned light_idx,
 
   unsigned chg_i = 0;
   for (const changer_t &chg : changers()) {
+    if (chg_i != 0)
+      toolBar->addSeparator();
+
     Wt::WPushButton *btn = new Wt::WPushButton(chg.nm);
     btn->setToolTip(chg.desc);
     btn->setCheckable(true);
