@@ -1,6 +1,6 @@
 {
     "desc": "All the lights in the center room",
-    "center room":
+    "center_room":
     {
         "beg": "0",
         "end": "512"

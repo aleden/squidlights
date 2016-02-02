@@ -1,0 +1,927 @@
+diff --git a/common/protocol/Ola.proto b/common/protocol/Ola.proto
+index 30eb80a..e42d9be 100644
+--- a/common/protocol/Ola.proto
++++ b/common/protocol/Ola.proto
+@@ -66,6 +66,7 @@ enum PluginIds {
+   OLA_PLUGIN_UARTDMX = 20;
+   OLA_PLUGIN_OPENPIXELCONTROL = 21;
+   OLA_PLUGIN_GPIO = 22;
++  OLA_PLUGIN_KINET_SPDS480CA = 23;
+ 
+   /*
+    * To obtain a new plugin ID, open a ticket at
+diff --git a/configure.ac b/configure.ac
+index ef31e09..38368a9 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -732,6 +732,7 @@ PLUGIN_SUPPORT(ftdidmx, USE_FTDI, [$have_libftdi])
+ PLUGIN_SUPPORT(gpio, USE_GPIO)
+ PLUGIN_SUPPORT(karate, USE_KARATE)
+ PLUGIN_SUPPORT(kinet, USE_KINET)
++PLUGIN_SUPPORT(kinet_spds480ca, USE_KINET_SPDS480CA)
+ PLUGIN_SUPPORT(milinst, USE_MILINST)
+ PLUGIN_SUPPORT(opendmx, USE_OPENDMX)
+ PLUGIN_SUPPORT(openpixelcontrol, USE_OPENPIXELCONTROL)
+diff --git a/olad/DynamicPluginLoader.cpp b/olad/DynamicPluginLoader.cpp
+index ecb1093..b0b0f13 100644
+--- a/olad/DynamicPluginLoader.cpp
++++ b/olad/DynamicPluginLoader.cpp
+@@ -55,6 +55,10 @@
+ #include "plugins/kinet/KiNetPlugin.h"
+ #endif
+ 
++#ifdef USE_KINET_SPDS480CA
++#include "plugins/kinet_spds480ca/KiNetPlugin_spds480ca.h"
++#endif
++
+ #ifdef USE_MILINST
+ #include "plugins/milinst/MilInstPlugin.h"
+ #endif
+@@ -168,6 +172,10 @@ void DynamicPluginLoader::PopulatePlugins() {
+   m_plugins.push_back(new ola::plugin::kinet::KiNetPlugin(m_plugin_adaptor));
+ #endif
+ 
++#ifdef USE_KINET_SPDS480CA
++  m_plugins.push_back(new ola::plugin::kinet_spds480ca::KiNetPlugin_spds480ca(m_plugin_adaptor));
++#endif
++
+ #ifdef USE_MILINST
+   m_plugins.push_back(
+       new ola::plugin::milinst::MilInstPlugin(m_plugin_adaptor));
+diff --git a/plugins/Makefile.mk b/plugins/Makefile.mk
+index 387859f..1ccd76e 100644
+--- a/plugins/Makefile.mk
++++ b/plugins/Makefile.mk
+@@ -5,6 +5,7 @@ include plugins/ftdidmx/Makefile.mk
+ include plugins/gpio/Makefile.mk
+ include plugins/karate/Makefile.mk
+ include plugins/kinet/Makefile.mk
++include plugins/kinet_spds480ca/Makefile.mk
+ include plugins/milinst/Makefile.mk
+ include plugins/opendmx/Makefile.mk
+ include plugins/openpixelcontrol/Makefile.mk
+diff --git a/plugins/kinet_spds480ca/KiNetDevice_spds480ca.cpp b/plugins/kinet_spds480ca/KiNetDevice_spds480ca.cpp
+index e69de29..b1b69a9 100644
+--- a/plugins/kinet_spds480ca/KiNetDevice_spds480ca.cpp
++++ b/plugins/kinet_spds480ca/KiNetDevice_spds480ca.cpp
+@@ -0,0 +1,97 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * KiNetDevice_spds480ca.cpp
++ * A KiNet_spds480ca Device.
++ * Copyright (C) 2013 Simon Newton
++ */
++
++#include <memory>
++#include <string>
++#include <vector>
++
++#include "ola/Callback.h"
++#include "ola/Logging.h"
++#include "ola/StringUtils.h"
++#include "ola/network/IPV4Address.h"
++#include "ola/network/InterfacePicker.h"
++#include "ola/network/NetworkUtils.h"
++#include "olad/PluginAdaptor.h"
++#include "olad/Port.h"
++#include "plugins/kinet_spds480ca/KiNetDevice_spds480ca.h"
++#include "plugins/kinet_spds480ca/KiNetPort_spds480ca.h"
++
++namespace ola {
++namespace plugin {
++namespace kinet_spds480ca {
++
++using ola::network::IPV4Address;
++using std::auto_ptr;
++using std::vector;
++
++/*
++ * Create a new KiNet_spds480ca Device
++ */
++KiNetDevice_spds480ca::KiNetDevice_spds480ca(
++    AbstractPlugin *owner,
++    const std::vector<std::pair<ola::network::IPV4Address, uint8_t> > &power_supplies,
++    PluginAdaptor *plugin_adaptor)
++    : Device(owner, "KiNet_spds480ca Device"),
++      m_power_supplies(power_supplies),
++      m_node(NULL),
++      m_plugin_adaptor(plugin_adaptor) {
++}
++
++
++/*
++ * Start this device
++ * @return true on success, false on failure
++ */
++bool KiNetDevice_spds480ca::StartHook() {
++  m_node = new KiNetNode_spds480ca(m_plugin_adaptor);
++
++  if (!m_node->Start()) {
++    delete m_node;
++    m_node = NULL;
++    return false;
++  }
++
++  std::vector<std::pair<ola::network::IPV4Address, uint8_t> >::const_iterator iter = m_power_supplies.begin();
++  unsigned int port_id = 0;
++  for (; iter != m_power_supplies.end(); ++iter) {
++    AddPort(new KiNetOutputPort_spds480ca(this, *iter, m_node, port_id++));
++  }
++  return true;
++}
++
++
++/**
++ * Stop this device. This is called before the ports are deleted
++ */
++void KiNetDevice_spds480ca::PrePortStop() {
++  m_node->Stop();
++}
++
++
++/*
++ * Stop this device
++ */
++void KiNetDevice_spds480ca::PostPortStop() {
++  delete m_node;
++  m_node = NULL;
++}
++}  // namespace kinet_spds480ca
++}  // namespace plugin
++}  // namespace ola
+diff --git a/plugins/kinet_spds480ca/KiNetDevice_spds480ca.h b/plugins/kinet_spds480ca/KiNetDevice_spds480ca.h
+index e69de29..ef22a22 100644
+--- a/plugins/kinet_spds480ca/KiNetDevice_spds480ca.h
++++ b/plugins/kinet_spds480ca/KiNetDevice_spds480ca.h
+@@ -0,0 +1,57 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * KiNetDevice_spds480ca.h
++ * Interface for the KiNet_spds480ca device
++ * Copyright (C) 2013 Simon Newton
++ */
++
++#ifndef PLUGINS_KINET_SPDS480CA_KINETDEVICE_H_
++#define PLUGINS_KINET_SPDS480CA_KINETDEVICE_H_
++
++#include <string>
++#include <vector>
++#include <utility>
++
++#include "ola/network/IPV4Address.h"
++#include "olad/Device.h"
++
++namespace ola {
++namespace plugin {
++namespace kinet_spds480ca {
++
++class KiNetDevice_spds480ca: public ola::Device {
++ public:
++    KiNetDevice_spds480ca(AbstractPlugin *owner,
++                const std::vector<std::pair<ola::network::IPV4Address, uint8_t> > &power_supplies,
++                class PluginAdaptor *plugin_adaptor);
++
++    // Only one KiNet_spds480ca device
++    std::string DeviceId() const { return "1"; }
++
++ protected:
++    bool StartHook();
++    void PrePortStop();
++    void PostPortStop();
++
++ private:
++    const std::vector<std::pair<ola::network::IPV4Address, uint8_t> > m_power_supplies;
++    class KiNetNode_spds480ca *m_node;
++    class PluginAdaptor *m_plugin_adaptor;
++};
++}  // namespace kinet_spds480ca
++}  // namespace plugin
++}  // namespace ola
++#endif  // PLUGINS_KINET_SPDS480CA_KINETDEVICE_H_
+diff --git a/plugins/kinet_spds480ca/KiNetNodeTest_spds480ca.cpp b/plugins/kinet_spds480ca/KiNetNodeTest_spds480ca.cpp
+index e69de29..ad47e70 100644
+--- a/plugins/kinet_spds480ca/KiNetNodeTest_spds480ca.cpp
++++ b/plugins/kinet_spds480ca/KiNetNodeTest_spds480ca.cpp
+@@ -0,0 +1,90 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * KiNetNodeTest_spds480ca.cpp
++ * Test fixture for the KiNetNode_spds480ca class
++ * Copyright (C) 2013 Simon Newton
++ */
++
++#include <cppunit/extensions/HelperMacros.h>
++
++#include "ola/DmxBuffer.h"
++#include "ola/Logging.h"
++#include "ola/io/SelectServer.h"
++#include "ola/network/IPV4Address.h"
++#include "ola/testing/MockUDPSocket.h"
++#include "plugins/kinet_spds480ca/KiNetNode_spds480ca.h"
++#include "ola/testing/TestUtils.h"
++
++using ola::DmxBuffer;
++using ola::network::IPV4Address;
++using ola::plugin::kinet_spds480ca::KiNetNode_spds480ca;
++using ola::testing::MockUDPSocket;
++
++
++class KiNetNodeTest_spds480ca: public CppUnit::TestFixture {
++  CPPUNIT_TEST_SUITE(KiNetNodeTest_spds480ca);
++  CPPUNIT_TEST(testSendDMX);
++  CPPUNIT_TEST_SUITE_END();
++
++ public:
++    KiNetNodeTest_spds480ca()
++        : CppUnit::TestFixture(),
++          ss(NULL),
++          m_socket(new MockUDPSocket()) {
++    }
++    void setUp();
++
++    void testSendDMX();
++
++ private:
++    ola::io::SelectServer ss;
++    IPV4Address target_ip;
++    MockUDPSocket *m_socket;
++
++    static const uint16_t KINET_PORT_spds480ca = 6038;
++};
++
++
++CPPUNIT_TEST_SUITE_REGISTRATION(KiNetNodeTest_spds480ca);
++
++void KiNetNodeTest_spds480ca::setUp() {
++  ola::InitLogging(ola::OLA_LOG_INFO, ola::OLA_LOG_STDERR);
++  ola::network::IPV4Address::FromString("10.0.0.10", &target_ip);
++}
++
++/**
++ * Check sending DMX works.
++ */
++void KiNetNodeTest_spds480ca::testSendDMX() {
++  KiNetNode_spds480ca node(&ss, m_socket);
++  OLA_ASSERT_TRUE(node.Start());
++
++  const uint8_t expected_data[] = {
++    0x04, 0x01, 0xdc, 0x4a, 0x01, 0x00,
++    0x01, 0x01, 0, 0, 0, 0,
++    0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff,
++    0, 1, 5, 8, 10, 14, 45, 100, 255
++  };
++
++  m_socket->AddExpectedData(expected_data, sizeof(expected_data), target_ip,
++                            KINET_PORT_spds480ca);
++
++  DmxBuffer buffer;
++  buffer.SetFromString("1,5,8,10,14,45,100,255");
++  OLA_ASSERT_TRUE(node.SendDMX(target_ip, buffer));
++  m_socket->Verify();
++  OLA_ASSERT(node.Stop());
++}
+diff --git a/plugins/kinet_spds480ca/KiNetNode_spds480ca.cpp b/plugins/kinet_spds480ca/KiNetNode_spds480ca.cpp
+index e69de29..105ed27 100644
+--- a/plugins/kinet_spds480ca/KiNetNode_spds480ca.cpp
++++ b/plugins/kinet_spds480ca/KiNetNode_spds480ca.cpp
+@@ -0,0 +1,199 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * KiNetNode_spds480ca.cpp
++ * An KiNet_spds480ca node
++ * Copyright (C) 2013 Simon Newton
++ */
++
++#include <memory>
++
++#include "ola/Constants.h"
++#include "ola/Logging.h"
++#include "ola/network/IPV4Address.h"
++#include "ola/network/SocketAddress.h"
++#include "plugins/kinet_spds480ca/KiNetNode_spds480ca.h"
++
++namespace ola {
++namespace plugin {
++namespace kinet_spds480ca {
++
++using ola::network::IPV4Address;
++using ola::network::IPV4SocketAddress;
++using ola::network::UDPSocket;
++using std::auto_ptr;
++
++/*
++ * Create a new KiNet_spds480ca node.
++ * @param ss a SelectServerInterface to use
++ * @param socket a UDPSocket or Null. Ownership is transferred.
++ */
++KiNetNode_spds480ca::KiNetNode_spds480ca(ola::io::SelectServerInterface *ss,
++                     ola::network::UDPSocketInterface *socket)
++    : m_running(false),
++      m_ss(ss),
++      m_output_stream(&m_output_queue),
++      m_socket(socket) {
++}
++
++
++/*
++ * Cleanup.
++ */
++KiNetNode_spds480ca::~KiNetNode_spds480ca() {
++  Stop();
++}
++
++
++/*
++ * Start this node.
++ */
++bool KiNetNode_spds480ca::Start() {
++  if (m_running)
++    return false;
++
++  if (!InitNetwork())
++    return false;
++  m_running = true;
++  return true;
++}
++
++
++/*
++ * Stop this node.
++ */
++bool KiNetNode_spds480ca::Stop() {
++  if (!m_running)
++    return false;
++
++  m_ss->RemoveReadDescriptor(m_socket.get());
++  m_socket.reset();
++  m_running = false;
++  return true;
++}
++
++
++/*
++ * Send some DMX data
++ */
++bool KiNetNode_spds480ca::SendDMX(const IPV4Address &target_ip, uint8_t univ, const DmxBuffer &buffer) {
++  static const uint8_t port = 0;
++  static const uint8_t flags = 0;
++  static const uint16_t timer_val = 0;
++  //static const uint32_t universe = 0xffffffff;
++
++  if (!buffer.Size()) {
++    OLA_DEBUG << "Not sending 0 length packet";
++    return true;
++  }
++
++  m_output_queue.Clear();
++  PopulatePacketHeader(KINET_spds480ca_PORTOUT);
++  m_output_stream << port << flags << timer_val;// << universe;
++  const uint8_t const1 = 0xd1;
++  const uint8_t const2 = 0x00;
++  const uint8_t const3 = 0x00;
++  const uint8_t const4 = 0x00;
++  const uint8_t const5 = 0x02;
++  m_output_stream << univ;
++  m_output_stream << const1;
++  m_output_stream << const2;
++  m_output_stream << const3;
++  m_output_stream << const4;
++  m_output_stream << const5;
++  m_output_stream << DMX512_START_CODE;
++
++  const uint8_t zero_u8 = 0x00;
++  m_output_stream << zero_u8;
++
++  unsigned int from_buff_len = std::min<unsigned int>(buffer.Size(), DMX_UNIVERSE_SIZE - 1);
++  m_output_stream.Write(buffer.GetRaw(), from_buff_len);
++
++  for (unsigned int i = from_buff_len + 1; i < DMX_UNIVERSE_SIZE; ++i)
++    m_output_stream << zero_u8;
++
++#if 0
++  const uint8_t const6 = 255;
++  m_output_stream << const6;
++#endif
++  const uint8_t const7 = 191;
++  m_output_stream << const7;
++
++  IPV4SocketAddress target(target_ip, KINET_spds480ca_PORT);
++  bool ok = m_socket->SendTo(&m_output_queue, target);
++  if (!ok)
++    OLA_WARN << "Failed to send KiNet_spds480ca DMX packet";
++
++  if (!m_output_queue.Empty()) {
++    OLA_WARN << "Failed to send complete KiNet_spds480ca packet";
++    m_output_queue.Clear();
++  }
++  return ok;
++}
++
++
++/*
++ * Called when there is data on this socket. Right now we discard all packets.
++ */
++void KiNetNode_spds480ca::SocketReady() {
++  uint8_t packet[1500];
++  ssize_t packet_size = sizeof(packet);
++  ola::network::IPV4SocketAddress source;
++
++  if (!m_socket->RecvFrom(reinterpret_cast<uint8_t*>(&packet),
++                          &packet_size,
++                          &source))
++    return;
++
++  OLA_INFO << "Received Kinet_spds480ca packet from " << source << ", discarding";
++}
++
++
++/*
++ * Fill in the header for a packet
++ */
++void KiNetNode_spds480ca::PopulatePacketHeader(uint16_t msg_type) {
++  uint32_t sequence_number = 0;  // everything seems to set this to 0.
++  m_output_stream << KINET_spds480ca_MAGIC_NUMBER << KINET_spds480ca_VERSION_ONE;
++  m_output_stream << msg_type << sequence_number;
++}
++
++
++/*
++ * Setup the networking components.
++ */
++bool KiNetNode_spds480ca::InitNetwork() {
++  std::auto_ptr<ola::network::UDPSocketInterface> socket(m_socket.release());
++
++  if (!socket.get())
++    socket.reset(new UDPSocket());
++
++  if (!socket->Init()) {
++    OLA_WARN << "Socket init failed";
++    return false;
++  }
++
++  if (!socket->Bind(IPV4SocketAddress(IPV4Address::WildCard(), KINET_spds480ca_PORT))) {
++    return false;
++  }
++
++  socket->SetOnData(NewCallback(this, &KiNetNode_spds480ca::SocketReady));
++  m_ss->AddReadDescriptor(socket.get());
++  m_socket.reset(socket.release());
++  return true;
++}
++}  // namespace kinet_spds480ca
++}  // namespace plugin
++}  // namespace ola
+diff --git a/plugins/kinet_spds480ca/KiNetNode_spds480ca.h b/plugins/kinet_spds480ca/KiNetNode_spds480ca.h
+index e69de29..d69da91 100644
+--- a/plugins/kinet_spds480ca/KiNetNode_spds480ca.h
++++ b/plugins/kinet_spds480ca/KiNetNode_spds480ca.h
+@@ -0,0 +1,75 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * KiNetNode_spds480ca.h
++ * Header file for the KiNetNode_spds480ca class.
++ * Copyright (C) 2013 Simon Newton
++ */
++
++#ifndef PLUGINS_KINET_SPDS480CA_KINETNODE_H_
++#define PLUGINS_KINET_SPDS480CA_KINETNODE_H_
++
++#include <memory>
++
++#include "ola/DmxBuffer.h"
++#include "ola/io/BigEndianStream.h"
++#include "ola/io/IOQueue.h"
++#include "ola/io/SelectServerInterface.h"
++#include "ola/network/IPV4Address.h"
++#include "ola/network/Socket.h"
++
++namespace ola {
++namespace plugin {
++namespace kinet_spds480ca {
++
++class KiNetNode_spds480ca {
++ public:
++    KiNetNode_spds480ca(ola::io::SelectServerInterface *ss,
++              ola::network::UDPSocketInterface *socket = NULL);
++    virtual ~KiNetNode_spds480ca();
++
++    bool Start();
++    bool Stop();
++
++    // The following apply to Input Ports (those which send data)
++    bool SendDMX(const ola::network::IPV4Address &target,
++                 uint8_t univ,
++                 const ola::DmxBuffer &buffer);
++
++ private:
++    bool m_running;
++    ola::io::SelectServerInterface *m_ss;
++    ola::io::IOQueue m_output_queue;
++    ola::io::BigEndianOutputStream m_output_stream;
++    ola::network::Interface m_interface;
++    std::auto_ptr<ola::network::UDPSocketInterface> m_socket;
++
++    KiNetNode_spds480ca(const KiNetNode_spds480ca&);
++    KiNetNode_spds480ca& operator=(const KiNetNode_spds480ca&);
++
++    void SocketReady();
++    void PopulatePacketHeader(uint16_t msg_type);
++    bool InitNetwork();
++
++    static const uint16_t KINET_spds480ca_PORT = 6038;
++    static const uint32_t KINET_spds480ca_MAGIC_NUMBER = 0x0401dc4a;
++    static const uint16_t KINET_spds480ca_VERSION_ONE = 0x0100;
++    static const uint16_t KINET_spds480ca_DMX_MSG = 0x0101;
++    static const uint16_t KINET_spds480ca_PORTOUT = 0x0801;
++};
++}  // namespace kinet_spds480ca
++}  // namespace plugin
++}  // namespace ola
++#endif  // PLUGINS_KINET_SPDS480CA_KINETNODE_H_
+diff --git a/plugins/kinet_spds480ca/KiNetPlugin_spds480ca.cpp b/plugins/kinet_spds480ca/KiNetPlugin_spds480ca.cpp
+index e69de29..d9b8a5b 100644
+--- a/plugins/kinet_spds480ca/KiNetPlugin_spds480ca.cpp
++++ b/plugins/kinet_spds480ca/KiNetPlugin_spds480ca.cpp
+@@ -0,0 +1,150 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * KiNetPlugin_spds480ca.cpp
++ * The KiNet_spds480ca plugin for ola
++ * Copyright (C) 2013 Simon Newton
++ */
++
++#include <string>
++#include <vector>
++#include <sstream>
++
++#include "ola/Logging.h"
++#include "ola/network/IPV4Address.h"
++#include "olad/PluginAdaptor.h"
++#include "olad/Preferences.h"
++#include "plugins/kinet_spds480ca/KiNetDevice_spds480ca.h"
++#include "plugins/kinet_spds480ca/KiNetPlugin_spds480ca.h"
++
++
++namespace ola {
++namespace plugin {
++namespace kinet_spds480ca {
++
++using ola::network::IPV4Address;
++using std::string;
++using std::vector;
++
++const char KiNetPlugin_spds480ca::POWER_SUPPLY_KEY[] = "power_supply";
++const char KiNetPlugin_spds480ca::PLUGIN_NAME[] = "KiNEt_spds480ca";
++const char KiNetPlugin_spds480ca::PLUGIN_PREFIX[] = "kinet_spds480ca";
++
++KiNetPlugin_spds480ca::KiNetPlugin_spds480ca(PluginAdaptor *plugin_adaptor)
++    : Plugin(plugin_adaptor) {
++}
++
++KiNetPlugin_spds480ca::~KiNetPlugin_spds480ca() {}
++
++/*
++ * Start the plugin.
++ */
++bool KiNetPlugin_spds480ca::StartHook() {
++  vector<string> power_supplies_strings = m_preferences->GetMultipleValue(
++      POWER_SUPPLY_KEY);
++  vector<string>::const_iterator iter = power_supplies_strings.begin();
++  std::vector<std::pair<ola::network::IPV4Address, uint8_t> > power_supplies;
++
++  for (; iter != power_supplies_strings.end(); ++iter) {
++    if (iter->empty()) {
++      continue;
++    }
++
++    std::string line = *iter;
++    std::string ipv4addr_s;
++    std::string spds480ca_univ_s;
++    std::istringstream iss(line, std::istringstream::in);
++    iss >> ipv4addr_s;
++    iss >> spds480ca_univ_s;
++    int univ_i = atoi(spds480ca_univ_s.c_str());
++    uint8_t univ_u8 = static_cast<uint8_t>(univ_i);
++
++    IPV4Address target;
++    if (IPV4Address::FromString(ipv4addr_s, &target)) {
++      power_supplies.push_back(std::make_pair(target, univ_u8));
++    } else {
++      OLA_WARN << "Invalid power supply IP address : " << *iter;
++    }
++  }
++  m_device.reset(new KiNetDevice_spds480ca(this, power_supplies, m_plugin_adaptor));
++
++  if (!m_device->Start()) {
++    m_device.reset();
++    return false;
++  }
++  m_plugin_adaptor->RegisterDevice(m_device.get());
++  return true;
++}
++
++
++/*
++ * Stop the plugin
++ * @return true on success, false on failure
++ */
++bool KiNetPlugin_spds480ca::StopHook() {
++  if (m_device.get()) {
++    // stop the device
++    m_plugin_adaptor->UnregisterDevice(m_device.get());
++    bool ret = m_device->Stop();
++    m_device.reset();
++    return ret;
++  }
++  return true;
++}
++
++
++/*
++ * Return the description for this plugin.
++ * @return a string description of the plugin
++ */
++string KiNetPlugin_spds480ca::Description() const {
++    return
++"KiNEt_spds480ca Plugin\n"
++"----------------------------\n"
++"\n"
++"This plugin creates a single device with multiple output ports. Each port\n"
++"represents a power supply. This plugin uses the V1 DMX-Out version of the\n"
++"KiNEt_spds480ca protocol\n"
++"\n"
++"--- Config file : ola-kinet_spds480ca.conf ---\n"
++"\n"
++"power_supply = <ip>\n"
++"The IP of the power supply to send to. You can communicate with more than\n"
++"one power supply by adding multiple power_supply = lines\n"
++"\n";
++}
++
++
++/*
++ * Set default preferences.
++ */
++bool KiNetPlugin_spds480ca::SetDefaultPreferences() {
++  bool save = false;
++
++  if (!m_preferences) {
++    return false;
++  }
++
++  save |= m_preferences->SetDefaultValue(POWER_SUPPLY_KEY,
++                                         StringValidator(true), "");
++
++  if (save) {
++    m_preferences->Save();
++  }
++  return true;
++}
++}  // namespace kinet_spds480ca
++}  // namespace plugin
++}  // namespace ola
+diff --git a/plugins/kinet_spds480ca/KiNetPlugin_spds480ca.h b/plugins/kinet_spds480ca/KiNetPlugin_spds480ca.h
+index e69de29..9e1be38 100644
+--- a/plugins/kinet_spds480ca/KiNetPlugin_spds480ca.h
++++ b/plugins/kinet_spds480ca/KiNetPlugin_spds480ca.h
+@@ -0,0 +1,57 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * KiNetPlugin_spds480ca.h
++ * The KiNEt_spds480ca plugin for ola
++ * Copyright (C) 2013 Simon Newton
++ */
++
++#ifndef PLUGINS_KINET_SPDS480CA_KINETPLUGIN_H_
++#define PLUGINS_KINET_SPDS480CA_KINETPLUGIN_H_
++
++#include <memory>
++#include <string>
++#include "olad/Plugin.h"
++#include "ola/plugin_id.h"
++
++namespace ola {
++namespace plugin {
++namespace kinet_spds480ca {
++
++class KiNetPlugin_spds480ca : public Plugin {
++ public:
++    explicit KiNetPlugin_spds480ca(PluginAdaptor *plugin_adaptor);
++    ~KiNetPlugin_spds480ca();
++
++    std::string Name() const { return PLUGIN_NAME; }
++    ola_plugin_id Id() const { return OLA_PLUGIN_KINET_SPDS480CA; }
++    std::string Description() const;
++    std::string PluginPrefix() const { return PLUGIN_PREFIX; }
++
++ private:
++    std::auto_ptr<class KiNetDevice_spds480ca> m_device;  // only have one device
++
++    bool StartHook();
++    bool StopHook();
++    bool SetDefaultPreferences();
++
++    static const char PLUGIN_NAME[];
++    static const char PLUGIN_PREFIX[];
++    static const char POWER_SUPPLY_KEY[];
++};
++}  // namespace kinet_spds480ca
++}  // namespace plugin
++}  // namespace ola
++#endif  // PLUGINS_KINET_SPDS480CA_KINETPLUGIN_H_
+diff --git a/plugins/kinet_spds480ca/KiNetPort_spds480ca.h b/plugins/kinet_spds480ca/KiNetPort_spds480ca.h
+index e69de29..e902c16 100644
+--- a/plugins/kinet_spds480ca/KiNetPort_spds480ca.h
++++ b/plugins/kinet_spds480ca/KiNetPort_spds480ca.h
+@@ -0,0 +1,66 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * KiNetPort_spds480ca.h
++ * The KiNet_spds480ca plugin for ola
++ * Copyright (C) 2013 Simon Newton
++ */
++
++#ifndef PLUGINS_KINET_SPDS480CA_KINETPORT_H_
++#define PLUGINS_KINET_SPDS480CA_KINETPORT_H_
++
++#include <string>
++#include "ola/network/IPV4Address.h"
++#include "olad/Port.h"
++#include "plugins/kinet_spds480ca/KiNetDevice_spds480ca.h"
++#include "plugins/kinet_spds480ca/KiNetNode_spds480ca.h"
++
++namespace ola {
++namespace plugin {
++namespace kinet_spds480ca {
++
++class KiNetOutputPort_spds480ca: public BasicOutputPort {
++ public:
++  KiNetOutputPort_spds480ca(KiNetDevice_spds480ca *device,
++                  const std::pair<ola::network::IPV4Address, uint8_t> &target,
++                  KiNetNode_spds480ca *node,
++                  unsigned int port_id)
++      : BasicOutputPort(device, port_id),
++        m_node(node),
++        m_target(target.first),
++	m_spds480ca_port(target.second) {
++  }
++
++  bool WriteDMX(const DmxBuffer &buffer, OLA_UNUSED uint8_t priority) {
++    return m_node->SendDMX(m_target, m_spds480ca_port, buffer);
++  }
++
++  std::string Description() const {
++    std::ostringstream spds480ca_port_ss;
++    int spds480ca_port_i = static_cast<int>(m_spds480ca_port);
++    spds480ca_port_ss << spds480ca_port_i;
++
++    return "Power Supply: " + m_target.ToString() + " " + spds480ca_port_ss.str();
++  }
++
++ private:
++  KiNetNode_spds480ca *m_node;
++  const ola::network::IPV4Address m_target;
++  const uint8_t m_spds480ca_port;
++};
++}  // namespace kinet_spds480ca
++}  // namespace plugin
++}  // namespace ola
++#endif  // PLUGINS_KINET_SPDS480CA_KINETPORT_H_
+diff --git a/plugins/kinet_spds480ca/Makefile.mk b/plugins/kinet_spds480ca/Makefile.mk
+index e69de29..99dd85f 100644
+--- a/plugins/kinet_spds480ca/Makefile.mk
++++ b/plugins/kinet_spds480ca/Makefile.mk
+@@ -0,0 +1,29 @@
++# LIBRARIES
++##################################################
++if USE_KINET_SPDS480CA
++# This is a library which isn't coupled to olad
++noinst_LTLIBRARIES += plugins/kinet_spds480ca/libolakinetnode_spds480ca.la
++plugins_kinet_spds480ca_libolakinetnode_spds480ca_la_SOURCES = plugins/kinet_spds480ca/KiNetNode_spds480ca.cpp \
++                                           plugins/kinet_spds480ca/KiNetNode_spds480ca.h
++plugins_kinet_spds480ca_libolakinetnode_spds480ca_la_LIBADD = common/libolacommon.la
++
++lib_LTLIBRARIES += plugins/kinet_spds480ca/libolakinet_spds480ca.la
++plugins_kinet_spds480ca_libolakinet_spds480ca_la_SOURCES = \
++    plugins/kinet_spds480ca/KiNetPlugin_spds480ca.cpp \
++    plugins/kinet_spds480ca/KiNetPlugin_spds480ca.h \
++    plugins/kinet_spds480ca/KiNetDevice_spds480ca.cpp \
++    plugins/kinet_spds480ca/KiNetDevice_spds480ca.h \
++    plugins/kinet_spds480ca/KiNetPort_spds480ca.h
++plugins_kinet_spds480ca_libolakinet_spds480ca_la_LIBADD = \
++    olad/plugin_api/libolaserverplugininterface.la \
++    plugins/kinet_spds480ca/libolakinetnode_spds480ca.la
++
++# TESTS
++##################################################
++test_programs += plugins/kinet_spds480ca/KiNetTester_spds480ca
++
++plugins_kinet_spds480ca_KiNetTester_spds480ca_SOURCES = plugins/kinet_spds480ca/KiNetNodeTest_spds480ca.cpp
++plugins_kinet_spds480ca_KiNetTester_spds480ca_CXXFLAGS = $(COMMON_TESTING_FLAGS)
++plugins_kinet_spds480ca_KiNetTester_spds480ca_LDADD = $(COMMON_TESTING_LIBS) \
++                                  plugins/kinet_spds480ca/libolakinetnode_spds480ca.la
++endif

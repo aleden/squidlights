@@ -4,6 +4,7 @@
 !changers
 !changers/*.py
 !changers/*.json
+!changers/README.md
 !include
 !include/*.h
 !lights
@@ -29,3 +30,5 @@
 !.config/systemd/user/*.service
 !kiddies
 !kiddies/*
+!patches
+!patches/*.patch
