@@ -11,7 +11,7 @@ def DmxSent(state):
 
 def SendDMXFrame():
     for rng in rngs:
-	wrapper.Client().SendDmx(rng[0], data, DmxSent)
+        wrapper.Client().SendDmx(rng[0], data, DmxSent)
     threading.Timer(TICK_INTERVAL, SendDMXFrame).start()
 
 def squid(dmxrngs):
