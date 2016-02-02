@@ -1,10 +1,10 @@
 {
     "desc": "Changes light color through the Hue dimension",
-    "freq":
+    "delta_t":
     {
         "type": "int",
-        "desc": "Speed (ms)",
-        "beg": "100",
-        "end": "10000"
+        "desc": "Cycle period (ms)",
+        "beg": "222",
+        "end": "22222"
     }
 }
