@@ -1,5 +1,6 @@
+COPT     ?= -O3
 CXX      := g++
-CXXFLAGS := -O0 -g -std=c++11
+CXXFLAGS := $(COPT) $(CDBG) -std=c++11
 INCLUDES := -I include
 LDFLAGS  := -lwt -lwthttp -lboost_system -lboost_filesystem -lola -lolacommon
 
