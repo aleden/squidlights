@@ -1,0 +1,20 @@
+{
+    "desc": "Changes color along line in HSV coordinate system",
+    "begclr":
+    {
+        "type": "color",
+        "desc": "Start color"
+    },
+    "endclr":
+    {
+        "type": "color",
+        "desc": "End color"
+    },
+    "delta_t":
+    {
+        "type": "int",
+        "desc": "Cycle period (ms)",
+        "beg": "222",
+        "end": "22222"
+    }
+}
