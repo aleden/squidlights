@@ -47,9 +47,6 @@ def SendDMXFrame():
     threading.Timer((1.0/1000.0)*float(TICK_INTERVAL), SendDMXFrame).start()
 
 def squid(dmxrngs, begclr, endclr, delta_t):
-    # arrange beginning and ending RGB colors into a matrix
-    # which looks like [begclr,
-    #                   endclr].
     global rngs
     rngs = dmxrngs
 
