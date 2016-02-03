@@ -1,0 +1,10 @@
+{
+    "desc": "Flashes random colors every specified period of time",
+    "delta_t":
+    {
+        "type": "int",
+        "desc": "Cycle period (ms)",
+        "beg": "222",
+        "end": "22222"
+    }
+}
