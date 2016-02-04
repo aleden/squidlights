@@ -1,10 +1,27 @@
-import os, sys
-# Hack until I figure out how the hell to actually get this script's directory
-sys.path.append("/home/squidlights/changers")
+import array
+import collections
+import threading
+from ola.ClientWrapper import ClientWrapper
 
-from light_geometries import UnifiedDMXController
+TICK_INTERVAL = 10.0  # in s
+
+def DmxSent(state):
+    if not state.Succeeded():
+        sys.exit(1)
+
+def SendDMXFrame():
+    for rng in rngs:
+        wrapper.Client().SendDmx(rng[0], data, DmxSent)
+    threading.Timer(TICK_INTERVAL, SendDMXFrame).start()
 
 def squid(dmxrngs):
-    controller = UnifiedDMXController(dmxrngs)
-    # Controller initialized to be "off", so we can just send the initial frame
-    controller.SendDMXFrame()
+    global rngs
+    rngs = dmxrngs
+
+    global data
+    data = array.array('B', [0] * 512)
+
+    global wrapper
+    wrapper = ClientWrapper()
+
+    SendDMXFrame()
