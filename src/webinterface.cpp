@@ -274,7 +274,7 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
                           a.bounded_int.end).str());
       intsld->resize(ColorViewWidget::img_w, 50);
       intsld->setRange(a.bounded_int.beg, a.bounded_int.end);
-      intsld->setValue(a.bounded_int.beg);
+      intsld->setValue((a.bounded_int.beg + a.bounded_int.end)/2);
       intsld->valueChanged().connect(std::bind([=](int new_val) {
                                                  state_mutex.lock();
                                                  ap->bounded_int.x = new_val;

@@ -67,7 +67,7 @@ void init_changers() {
       case CHANGER_ARG_BOUNDED_INT:
         arg.bounded_int.beg = v.second.get<int>("beg");
         arg.bounded_int.end = v.second.get<int>("end");
-        arg.bounded_int.x = arg.bounded_int.beg;
+        arg.bounded_int.x = (arg.bounded_int.beg + arg.bounded_int.end) / 2;
         break;
       case CHANGER_ARG_COLOR:
         arg.color.r = 0;
