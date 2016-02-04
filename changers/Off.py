@@ -1,27 +1,10 @@
-import array
-import collections
-import threading
-from ola.ClientWrapper import ClientWrapper
+import os, sys
 
-TICK_INTERVAL = 10.0  # in s
+# Hack until I figure out how the hell to actually get this script's directory
+sys.path.append("/home/squidlights/changers")
 
-def DmxSent(state):
-    if not state.Succeeded():
-        sys.exit(1)
-
-def SendDMXFrame():
-    for rng in rngs:
-        wrapper.Client().SendDmx(rng[0], data, DmxSent)
-    threading.Timer(TICK_INTERVAL, SendDMXFrame).start()
+from light_geometries import UnifiedDMXController
 
 def squid(dmxrngs):
-    global rngs
-    rngs = dmxrngs
-
-    global data
-    data = array.array('B', [0] * 512)
-
-    global wrapper
-    wrapper = ClientWrapper()
-
-    SendDMXFrame()
+    controller = UnifiedDMXController(dmxrngs)
+    controller.SendDMXFrame()
