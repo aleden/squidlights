@@ -4,7 +4,7 @@
     {
         "type": "int",
         "desc": "Cycle period (ms)",
-        "beg": "222",
+        "beg": "33",
         "end": "22222"
     }
 }

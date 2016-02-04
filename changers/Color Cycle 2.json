@@ -1,5 +1,5 @@
 {
-    "desc": "Changes color along line in HSV coordinate system",
+    "desc": "Color changes back and forth across a line segment in the HSV coordinate system",
     "begclr":
     {
         "type": "color",
@@ -14,7 +14,7 @@
     {
         "type": "int",
         "desc": "Cycle period (ms)",
-        "beg": "222",
+        "beg": "33",
         "end": "22222"
     }
 }
