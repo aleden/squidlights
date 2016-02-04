@@ -5,6 +5,7 @@
 !changers/*.py
 !changers/*.json
 !changers/README.md
+!changers/light_geometries/*.py
 !include
 !include/*.h
 !lights

@@ -1,34 +1,36 @@
-import array
-import numpy as np
 import math
-from ola.ClientWrapper import ClientWrapper
+import threading
 
-# globals for timing, script state storage
-TICK_INTERVAL = 33  # in ms - so display at approximately 30 fps
-TIME_ELAPSED = 0.0  # time in ms since we last displaed begclr
-                    # when TIME_ELAPSED is first >= delta_t/2.0,
-                    # we display endclr (and begin to cycle back)
+import os, sys
+# Hack until I figure out how the hell to actually get this script's directory
+sys.path.append("/home/squidlights/changers")
 
-def DmxSent(state):
-    if not state.Succeeded():
-        wrapper.Stop()
+from light_geometries import UnifiedDMXController
 
-def SendDMXFrame():
-    # TODO as fuck
+# TODO add saturation, brightness sliders or something to frontend?
+
+class UnifiedWashController(UnifiedDMXController):
+    def __init__(self, dmxrngs, delta_t):
+        super(UnifiedWashController, self).__init__(dmxrngs)
+        self.delta_t = delta_t
+        self.time_elapsed = 0.0
+
+    def SendDMXFrame(self):
+        self.light.setHSV((self.time_elapsed/self.delta_t, 1.0, 1.0))
+        #super(UnifiedWashController, self).SendDMXFrame()
+        datas = self._getDatas()
+        for r in self.dmxrngs:
+            self.wrapper.Client().SendDmx(r[0], datas[r], self._DMXSent)
+
+    def SendDMXStream(self, tick_interval):
+        self.time_elapsed = math.fmod(self.time_elapsed + tick_interval, self.delta_t)
+        #super(UnifiedWashController, self).SendDMXStream(tick_interval)
+        self.SendDMXFrame()
+        self.timer = threading.Timer((1.0/1000.0)*float(tick_interval), self.SendDMXStream, [tick_interval])
+        self.timer.start()
 
 
 def squid(dmxrngs, delta_t):
-    # arrange beginning and ending RGB colors into a matrix
-    # which looks like [begclr,
-    #                   endclr].
-    global period
-    period = delta_t
-
-    global rngs
-    rngs = dmxrngs
-
-    global wrapper
-    wrapper = ClientWrapper()
-    SendDMXFrame()
-    # initiate main loop
-    wrapper.Run()
+    controller = UnifiedWashController(dmxrngs, delta_t)
+    controller.SendDMXStream(33.0)
+    

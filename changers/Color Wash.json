@@ -1,5 +1,5 @@
 {
-    "desc": "Changes light color through the Hue dimension",
+    "desc": "Changes light color through the Hue dimension.",
     "delta_t":
     {
         "type": "int",
