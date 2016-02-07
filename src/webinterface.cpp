@@ -15,6 +15,7 @@
 #include <Wt/WPaintedWidget>
 #include <Wt/WPainter>
 #include <Wt/WSlider>
+#include <Wt/WSpinBox>
 #include <tuple>
 #include <boost/format.hpp>
 #include <algorithm>
@@ -250,9 +251,9 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
       clrpckv->colorChanged().connect(
           std::bind([=](const ColorViewWidget::_color &new_clr) {
                       state_mutex.lock();
-                      ap->color.r = new_clr.rgb[0];
-                      ap->color.g = new_clr.rgb[1];
-                      ap->color.b = new_clr.rgb[2];
+                      ap->_color.r = new_clr.rgb[0];
+                      ap->_color.g = new_clr.rgb[1];
+                      ap->_color.b = new_clr.rgb[2];
 
                       run_light_changer(l_idx);
                       state_mutex.unlock();
@@ -261,7 +262,7 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
       break;
     }
 
-    case CHANGER_ARG_BOUNDED_INT: {
+    case CHANGER_ARG_INT: {
       Wt::WContainerWidget *cntr = new Wt::WContainerWidget(group);
       cntr->resize(ColorViewWidget::img_w, Wt::WLength::Auto);
 
@@ -270,14 +271,14 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
       Wt::WSlider *intsld = new Wt::WSlider(Wt::Horizontal);
       layout->addWidget(intsld);
 
-      intsld->setToolTip((boost::format("[%d, %d)") % a.bounded_int.beg %
-                          a.bounded_int.end).str());
+      intsld->setToolTip((boost::format("[%d, %d]") % a._int.beg %
+                          a._int.end).str());
       intsld->resize(ColorViewWidget::img_w, 50);
-      intsld->setRange(a.bounded_int.beg, a.bounded_int.end);
-      intsld->setValue((a.bounded_int.beg + a.bounded_int.end)/2);
+      intsld->setRange(a._int.beg, a._int.end);
+      intsld->setValue((a._int.beg + a._int.end)/2);
       intsld->valueChanged().connect(std::bind([=](int new_val) {
                                                  state_mutex.lock();
-                                                 ap->bounded_int.x = new_val;
+                                                 ap->_int.x = new_val;
                                                  run_light_changer(l_idx);
                                                  state_mutex.unlock();
                                                },
@@ -294,6 +295,25 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
           std::placeholders::_1));
 
       cntr->setLayout(layout);
+      break;
+    }
+
+    case CHANGER_ARG_PRECISE_INT: {
+      Wt::WSpinBox *spbx = new Wt::WSpinBox(group);
+      spbx->setRange(a._int.beg, a._int.end);
+      spbx->setValue((a._int.beg + a._int.end) / 2);
+      spbx->setSingleStep(1);
+
+      spbx->setToolTip((boost::format("[%d, %d]") % a._int.beg %
+                          a._int.end).str());
+      spbx->resize(ColorViewWidget::img_w, Wt::WLength::Auto);
+      spbx->valueChanged().connect(std::bind([=](int new_val) {
+                                                 state_mutex.lock();
+                                                 ap->_int.x = new_val;
+                                                 run_light_changer(l_idx);
+                                                 state_mutex.unlock();
+                                               },
+                                               std::placeholders::_1));
       break;
     }
 

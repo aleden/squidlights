@@ -4,7 +4,7 @@
 
 namespace squidlights {
 
-enum CHANGER_ARG_TYPE { CHANGER_ARG_COLOR, CHANGER_ARG_BOUNDED_INT };
+enum CHANGER_ARG_TYPE { CHANGER_ARG_COLOR, CHANGER_ARG_INT, CHANGER_ARG_PRECISE_INT };
 
 struct changer_arg_t {
   std::string nm, desc;
@@ -12,10 +12,10 @@ struct changer_arg_t {
   union {
     struct {
       int x, beg, end;
-    } bounded_int;
+    } _int;
     struct {
       uint8_t r, g, b;
-    } color;
+    } _color;
   };
 };
 

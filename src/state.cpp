@@ -137,11 +137,12 @@ string build_changer_squid_args(unsigned changer_idx, unsigned light_idx) {
     ss << a.nm << "=";
     switch (a.ty) {
     case CHANGER_ARG_COLOR:
-      ss << "(" << (int)a.color.r << "," << (int)a.color.g << ","
-         << (int)a.color.b << ")";
+      ss << "(" << (int)a._color.r << "," << (int)a._color.g << ","
+         << (int)a._color.b << ")";
       break;
-    case CHANGER_ARG_BOUNDED_INT:
-      ss << a.bounded_int.x;
+    case CHANGER_ARG_INT:
+    case CHANGER_ARG_PRECISE_INT:
+      ss << a._int.x;
       break;
     }
     ss << ",";

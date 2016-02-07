@@ -64,15 +64,16 @@ void init_changers() {
 
       arg.ty = (*ty_it).second;
       switch (arg.ty) {
-      case CHANGER_ARG_BOUNDED_INT:
-        arg.bounded_int.beg = v.second.get<int>("beg");
-        arg.bounded_int.end = v.second.get<int>("end");
-        arg.bounded_int.x = (arg.bounded_int.beg + arg.bounded_int.end) / 2;
+      case CHANGER_ARG_PRECISE_INT:
+      case CHANGER_ARG_INT:
+        arg._int.beg = v.second.get<int>("beg");
+        arg._int.end = v.second.get<int>("end");
+        arg._int.x = (arg._int.beg + arg._int.end) / 2;
         break;
       case CHANGER_ARG_COLOR:
-        arg.color.r = 0;
-        arg.color.g = 0;
-        arg.color.b = 0;
+        arg._color.r = 0;
+        arg._color.g = 0;
+        arg._color.b = 0;
         break;
       }
 
@@ -87,10 +88,11 @@ void init_changers() {
 
 void init_changer_arg_type_map() {
   chang_arg_ty_map["color"] = CHANGER_ARG_COLOR;
-  chang_arg_ty_map["int"] = CHANGER_ARG_BOUNDED_INT;
+  chang_arg_ty_map["int"] = CHANGER_ARG_INT;
+  chang_arg_ty_map["precise_int"] = CHANGER_ARG_PRECISE_INT;
 }
 
-const char *chang_arg_ty_string_map[] = {"color", "int"};
+const char *chang_arg_ty_string_map[] = {"color", "int", "precise_int"};
 
 void print_changers() {
   for (const changer_t &chg : cl) {

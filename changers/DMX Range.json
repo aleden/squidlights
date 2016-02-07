@@ -1,0 +1,17 @@
+{
+    "desc": "Testing utility to discover which lights correspond to which DMX addresses",
+    "dmx_first":
+    {
+        "type": "precise_int",
+        "desc": "First DMX channel",
+        "beg": "1",
+        "end": "512"
+    },
+    "dmx_last":
+    {
+        "type": "precise_int",
+        "desc": "Last DMX channel",
+        "beg": "1",
+        "end": "512"
+    }
+}
