@@ -48,7 +48,7 @@ def SendDMXFrame():
     # store relevant state for next frame calculation
     TIME_ELAPSED = math.fmod((TIME_ELAPSED + TICK_INTERVAL), period)
 
-    threading.Timer((1.0/1000.0)*float(TICK_INTERVAL), SendDMXFrame).start()
+    wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
 
 def squid(dmxrngs, begclr, endclr, delta_t):
     # arrange beginning and ending RGB colors into a matrix
@@ -69,4 +69,5 @@ def squid(dmxrngs, begclr, endclr, delta_t):
     global wrapper
     wrapper = ClientWrapper()
 
-    SendDMXFrame()
+    wrapper.AddEvent(22, SendDMXFrame)
+    wrapper.Run()

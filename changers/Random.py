@@ -10,9 +10,7 @@ def DmxSent(state):
         sys.exit(1)
 
 def SendDMXFrame():
-    global rngs
-    global TICK_INTERVAL
-    global wrapper
+    wrapper.AddEvent(tick_interval, SendDMXFrame)
 
     datas = []
     for rng in rngs:
@@ -27,16 +25,15 @@ def SendDMXFrame():
     for rng, data in zip(rngs, datas):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
-    threading.Timer((1.0/1000.0)*float(TICK_INTERVAL), SendDMXFrame).start()
-
 def squid(dmxrngs, delta_t):
     global rngs
     rngs = dmxrngs
 
-    global TICK_INTERVAL
-    TICK_INTERVAL = delta_t
+    global tick_interval
+    tick_interval = delta_t
 
     global wrapper
     wrapper = ClientWrapper()
 
-    SendDMXFrame()
+    wrapper.AddEvent(22, SendDMXFrame)
+    wrapper.Run()

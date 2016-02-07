@@ -1,18 +1,17 @@
 import array
-import collections
-import threading
 from ola.ClientWrapper import ClientWrapper
 
-TICK_INTERVAL = 10.0  # in s
+TICK_INTERVAL = 10000  # set every 10 seconds just in case
 
 def DmxSent(state):
     if not state.Succeeded():
         sys.exit(1)
 
 def SendDMXFrame():
+    wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
+
     for rng,data in zip(rngs, datas):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
-        threading.Timer(TICK_INTERVAL, SendDMXFrame).start()
 
 def squid(dmxrngs, clr):
     global rngs
@@ -31,4 +30,5 @@ def squid(dmxrngs, clr):
     global wrapper
     wrapper = ClientWrapper()
 
-    SendDMXFrame()
+    wrapper.AddEvent(22, SendDMXFrame)
+    wrapper.Run()

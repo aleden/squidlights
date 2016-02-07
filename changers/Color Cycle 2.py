@@ -1,9 +1,6 @@
 import array
 import colorsys
 import operator
-import numpy as np
-import math
-import threading
 from ola.ClientWrapper import ClientWrapper
 
 TICK_INTERVAL = 33  # in ms - so display at approximately 30 fps
@@ -16,6 +13,8 @@ def SendDMXFrame():
     global t
     global beg_hsv
     global end_hsv
+
+    wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
 
     t += TICK_INTERVAL
 
@@ -39,12 +38,10 @@ def SendDMXFrame():
             data[chann+1] = clr[1]
             data[chann+2] = clr[2]
         datas.append(data)
-    
+
     # display frame
     for rng, data in zip(rngs, datas):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
-
-    threading.Timer((1.0/1000.0)*float(TICK_INTERVAL), SendDMXFrame).start()
 
 def squid(dmxrngs, begclr, endclr, delta_t):
     global rngs
@@ -65,4 +62,5 @@ def squid(dmxrngs, begclr, endclr, delta_t):
     global wrapper
     wrapper = ClientWrapper()
 
-    SendDMXFrame()
+    wrapper.AddEvent(22, SendDMXFrame)
+    wrapper.Run()
