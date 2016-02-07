@@ -10,54 +10,61 @@ def DmxSent(state):
         sys.exit(1)
 
 def SendDMXFrame():
-    global t
-    global beg_hsv
-    global end_hsv
+    global forward
+    global t_idx
+    global frames
 
     wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
 
-    t += TICK_INTERVAL
+    for j in range(0, len(rngs)):
+        wrapper.Client().SendDmx(rngs[j][0], frames[t_idx][j], DmxSent)
 
-    if t > period:
-        t -= period
-        beg_hsv, end_hsv = end_hsv, beg_hsv
+    if t_idx == len(frames)-1:
+        forward = False
+    elif t_idx == 0:
+        forward = True
 
-    progress = float(t) / float(period)
-    hsv_delta = tuple(map(operator.sub, end_hsv, beg_hsv))
-    hsv_addend = tuple(map(operator.mul, tuple([progress]*3), hsv_delta))
+    if forward:
+        t_idx += 1
+    else:
+        t_idx -= 1
 
-    hsv = tuple(map(operator.add, beg_hsv, hsv_addend))
-    clr = tuple(map(int, map(operator.mul, colorsys.hsv_to_rgb(*hsv), tuple([255.0]*3))))
+def squid(dmxrngs, begclr, endclr, period):
+    global frames
+    frames = []
 
-    # prepare DMX512 serial data
-    datas = []
-    for rng in rngs:
-        data = array.array('B', [0] * 512)
-        for chann in range(rng[1], rng[2] - 3, 3):
-            data[chann+0] = clr[0]
-            data[chann+1] = clr[1]
-            data[chann+2] = clr[2]
-        datas.append(data)
+    #
+    # precompute dmx packets for every frame
+    #
+    beg_hsv = colorsys.rgb_to_hsv(*tuple(map(operator.div, map(float, begclr), [255.0]*3)))
+    end_hsv = colorsys.rgb_to_hsv(*tuple(map(operator.div, map(float, endclr), [255.0]*3)))
+    for i in (range(0, period, TICK_INTERVAL) + [period]):
+        progress = float(i) / float(period)
 
-    # display frame
-    for rng, data in zip(rngs, datas):
-        wrapper.Client().SendDmx(rng[0], data, DmxSent)
+        hsv_delta = tuple(map(operator.sub, end_hsv, beg_hsv))
+        hsv_addend = tuple(map(operator.mul, tuple([progress]*3), hsv_delta))
 
-def squid(dmxrngs, begclr, endclr, delta_t):
+        hsv = tuple(map(operator.add, beg_hsv, hsv_addend))
+        clr = tuple(map(int, map(operator.mul, colorsys.hsv_to_rgb(*hsv), tuple([255.0]*3))))
+
+        frame = []
+        for j in range(0, len(dmxrngs)):
+            dmxpacket = array.array('B', [0] * dmxrngs[j][1])
+            for chann in range(dmxrngs[j][1], dmxrngs[j][2] - 2, 3):
+                dmxpacket.append(clr[0])
+                dmxpacket.append(clr[1])
+                dmxpacket.append(clr[2])
+            frame.append(dmxpacket)
+        frames.append(frame)
+
     global rngs
     rngs = dmxrngs
 
-    global beg_hsv
-    beg_hsv = colorsys.rgb_to_hsv(*tuple(map(operator.div, map(float, begclr), [255.0]*3)))
+    global forward
+    forward = True
 
-    global end_hsv
-    end_hsv = colorsys.rgb_to_hsv(*tuple(map(operator.div, map(float, endclr), [255.0]*3)))
-
-    global period
-    period = delta_t
-
-    global t
-    t = -TICK_INTERVAL
+    global t_idx
+    t_idx = 0
 
     global wrapper
     wrapper = ClientWrapper()
