@@ -43,7 +43,6 @@ public:
       argv_flattened[i] = argv_cmem[i].get();
     argv_flattened[argv_flattened.size() - 1] = NULL;
 
-    cout << exe_fp;
     for (char *arg : argv_flattened)
       if (arg)
         cout << " \"" << arg << '\"';
@@ -91,6 +90,7 @@ void run_light_changer(unsigned light_idx) {
 
   fs::path python_path("/usr/bin/python2");
   fs::path chgr_path(appdir() / "changers" / chgr_py);
+  fs::path chgr_dir(appdir() / "changers");
 
   if (!fs::exists(python_path)) {
     cerr << "warning: could not find " << python_path << endl;
@@ -106,8 +106,12 @@ void run_light_changer(unsigned light_idx) {
 
   string argv0 = python_path.string();
   string argv1 = "-c";
-  string argv2 = (boost::format("execfile('%s'); squid(%s)") %
-                  chgr_path.string() % argstr).str();
+  string argv2 =
+      (boost::format("import sys;"
+                     "sys.path.insert(0, '%s');"
+                     "execfile('%s');"
+                     "squid(%s)") %
+       chgr_dir.string() % chgr_path.string() % argstr).str();
 
   list<string> argv = {argv0, argv1, argv2};
 
