@@ -1,4 +1,5 @@
 import array
+import itertools
 from ola.ClientWrapper import ClientWrapper
 from tepilepsy import *
 
@@ -11,7 +12,7 @@ def DmxSent(state):
 def SendDMXFrame():
     wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
 
-    for rng,data in zip(rngs, tepilepsy.DMXData()):
+    for rng,data in itertools.izip(rngs, tepilepsy.DMXData()):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
 def squid(dmxrngs):

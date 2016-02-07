@@ -87,11 +87,9 @@ class Tepilepsy:
         self.pixelMap = [[(0,0) for y in range(self.GetHeight())] for x in range(self.GetWidth())]
         for x in range(self.GetWidth()):
             for y in range(self.GetHeight()):
-                print("x=%d, y=%d" % (x, y))
                 halfPanelColumn = x / self.halfPanelWidth
                 halfPanelRow = y / self.halfPanelHeight
                 halfPanelIdx = halfPanelMap[halfPanelColumn][halfPanelRow]
-                #print("halfPanelMap[%d][%d]" % (halfPanelColumn, halfPanelRow))
                 xOff = x % self.halfPanelWidth
                 yOff = y % self.halfPanelHeight
                 isLeft = halfPanelIdx % 2 == 0
