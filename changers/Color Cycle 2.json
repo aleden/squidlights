@@ -15,6 +15,6 @@
         "type": "int",
         "desc": "Cycle period (ms)",
         "beg": "33",
-        "end": "22222"
+        "end": "180000"
     }
 }
