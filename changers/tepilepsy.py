@@ -18,7 +18,7 @@ class Tepilepsy:
         # initialize DMX channel values for each half panel
         halfPanelPixels = self.halfPanelWidth * self.halfPanelHeight
         halfPanelChannels = halfPanelPixels * 3
-        self.halfPanelsDmx = [array.array('B', [0] * halfPanelChannels)] * numHalfPanels
+        self.halfPanelsDmx = [array.array('B', [0] * halfPanelChannels) for i in range(numHalfPanels)]
 
         #
         # create lookup table to decompose a given half panel by row and column
