@@ -13,7 +13,7 @@ def SendDMXFrame():
 
     wrapper.AddEvent(tick_interval, SendDMXFrame)
 
-    for rng,data in itertools.izip(rngs, dmxframes[idx]):
+    for rng, data in itertools.izip(rngs, dmxframes[idx]):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
     idx = (idx + 1) % len(dmxframes)
