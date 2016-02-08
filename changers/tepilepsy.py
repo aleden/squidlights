@@ -7,7 +7,7 @@ class Tepilepsy:
     panelRows = 3
 
     # each panel is composed of two vertically split 'half panels' which have
-    # their own DMX address spaces, each 6x36 pixels
+    # their own DMX address spaces, each 6x12 pixels
     halfPanelWidth = 6
     halfPanelHeight = 12
 
