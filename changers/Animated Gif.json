@@ -1,0 +1,15 @@
+{
+    "desc": "Displays an animated gif",
+    "gif":
+    {
+        "type": "file",
+        "desc": "animated gif to display"
+    },
+    "period":
+    {
+        "type": "int",
+        "desc": "Cycle period (ms)",
+        "beg": "22",
+        "end": "3000"
+    }
+}
