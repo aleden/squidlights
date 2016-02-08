@@ -1,5 +1,6 @@
 import array
 import itertools
+from PIL import Image
 from ola.ClientWrapper import ClientWrapper
 from tepilepsy import *
 
@@ -15,16 +16,29 @@ def SendDMXFrame():
     for rng,data in itertools.izip(rngs, tepilepsy.DMXData()):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
-def squid(dmxrngs):
+def squid(dmxrngs, pic):
     global rngs
     rngs = dmxrngs
 
     global tepilepsy
     tepilepsy = Tepilepsy()
 
-    for x in range(0, tepilepsy.GetWidth(), 2):
-        for y in range(0, tepilepsy.GetHeight(), 6):
-            tepilepsy.SetPixel((x, y), (255, 0, 0))
+    # clear first
+    for x in range(tepilepsy.GetWidth()):
+        for y in range(tepilepsy.GetHeight()):
+            tepilepsy.SetPixel((x, y), (0, 0, 0))
+
+    # open image, resize to fit
+    im = Image.open(pic)
+    im = im.convert('RGB')
+    im.thumbnail((tepilepsy.GetWidth(), tepilepsy.GetHeight()), Image.ANTIALIAS)
+    im = im.convert('RGB')
+    im.save('/tmp/im.png', 'PNG')
+
+    # set image pixels
+    for x in range(im.width):
+        for y in range(im.height):
+            tepilepsy.SetPixel((x, y), im.getpixel((x, y)))
 
     global wrapper
     wrapper = ClientWrapper()

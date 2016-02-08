@@ -16,6 +16,7 @@
 #include <Wt/WPainter>
 #include <Wt/WSlider>
 #include <Wt/WSpinBox>
+#include <Wt/WFileUpload>
 #include <tuple>
 #include <boost/format.hpp>
 #include <algorithm>
@@ -314,6 +315,24 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
                                                  state_mutex.unlock();
                                                },
                                                std::placeholders::_1));
+      break;
+    }
+
+    case CHANGER_ARG_FILE: {
+      Wt::WFileUpload *upload = new Wt::WFileUpload(group);
+
+      // upload automatically when the user entered a file
+      upload->changed().connect(upload, &Wt::WFileUpload::upload);
+
+      // react to a successful upload.
+      upload->uploaded().connect([=](...) {
+        state_mutex.lock();
+        ap->_file = upload->spoolFileName();
+        run_light_changer(l_idx);
+        state_mutex.unlock();
+
+      });
+
       break;
     }
 

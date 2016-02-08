@@ -148,6 +148,9 @@ string build_changer_squid_args(unsigned changer_idx, unsigned light_idx) {
     case CHANGER_ARG_PRECISE_INT:
       ss << a._int.x;
       break;
+    case CHANGER_ARG_FILE:
+      ss << '\'' << a._file << '\'';
+      break;
     }
     ss << ",";
   }

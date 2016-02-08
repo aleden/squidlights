@@ -1,3 +1,8 @@
 {
-    "desc": "Displays an image"
+    "desc": "Displays an image",
+    "pic":
+    {
+        "type": "file",
+        "desc": "image to display"
+    }
 }
