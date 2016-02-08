@@ -1,4 +1,5 @@
 import array
+import itertools
 import colorsys
 import operator
 from ola.ClientWrapper import ClientWrapper
@@ -16,8 +17,8 @@ def SendDMXFrame():
 
     wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
 
-    for j in range(0, len(rngs)):
-        wrapper.Client().SendDmx(rngs[j][0], frames[t_idx][j], DmxSent)
+    for rng, data in itertools.izip(rngs, frames[t_idx]):
+        wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
     if t_idx == len(frames)-1:
         forward = False
