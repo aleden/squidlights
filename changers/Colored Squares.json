@@ -1,0 +1,17 @@
+{
+    "desc": "Displays colored squares",
+    "t":
+    {
+        "type": "int",
+        "desc": "Cycle period (ms)",
+        "beg": "33",
+        "end": "90000"
+    },
+    "size":
+    {
+        "type": "precise_int",
+        "desc": "Size of squares",
+        "beg": "1",
+        "end": "30"
+    }
+}
