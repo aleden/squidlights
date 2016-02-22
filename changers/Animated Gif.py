@@ -25,7 +25,6 @@ def squid(dmxrngs, gif, period):
     global tick_interval
     tick_interval = period
 
-    # open image, resize to fit
     im = Image.open(gif)
 
     global dmxframes
@@ -38,7 +37,7 @@ def squid(dmxrngs, gif, period):
         try:
             tepilepsy = Tepilepsy()
 
-            # set image pixels
+            # retrieve pixels for this frame
             for x in range(im.width):
                 for y in range(im.height):
                     i = im.getpixel((x, y))
@@ -49,7 +48,7 @@ def squid(dmxrngs, gif, period):
 
             im.seek(im.tell() + 1)
         except EOFError:
-            break # end of sequence
+            break # no more frames in animated gif
 
     global wrapper
     wrapper = ClientWrapper()

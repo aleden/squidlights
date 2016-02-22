@@ -4,7 +4,7 @@ import colorsys
 import operator
 from ola.ClientWrapper import ClientWrapper
 
-TICK_INTERVAL = 33  # in ms - so display at approximately 30 fps
+TICK_INTERVAL = 33 # 30 fps
 
 def DmxSent(state):
     if not state.Succeeded():

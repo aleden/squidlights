@@ -4,7 +4,7 @@ from PIL import Image
 from ola.ClientWrapper import ClientWrapper
 from tepilepsy import *
 
-TICK_INTERVAL = 10000  # set every 10 seconds just in case
+TICK_INTERVAL = 1000 # every second
 
 def DmxSent(state):
     if not state.Succeeded():
@@ -31,7 +31,7 @@ def squid(dmxrngs, pic):
     # open image, resize to fit
     im = Image.open(pic)
     im = im.convert('RGB')
-    im.thumbnail((tepilepsy.GetWidth(), tepilepsy.GetHeight()), Image.ANTIALIAS)
+    im.thumbnail((tepilepsy.GetWidth(), tepilepsy.GetHeight()))
     im = im.convert('RGB')
     im.save('/tmp/im.png', 'PNG')
 

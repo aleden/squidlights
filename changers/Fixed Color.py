@@ -1,7 +1,8 @@
 import array
+import itertools
 from ola.ClientWrapper import ClientWrapper
 
-TICK_INTERVAL = 10000  # set every 10 seconds just in case
+TICK_INTERVAL = 1000  # every second
 
 def DmxSent(state):
     if not state.Succeeded():
@@ -10,7 +11,7 @@ def DmxSent(state):
 def SendDMXFrame():
     wrapper.AddEvent(TICK_INTERVAL, SendDMXFrame)
 
-    for rng,data in zip(rngs, datas):
+    for rng,data in itertools.izip(rngs, datas):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
 def squid(dmxrngs, clr):

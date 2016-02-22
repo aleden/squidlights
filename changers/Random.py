@@ -1,4 +1,5 @@
 import array
+import itertools
 import colorsys
 import operator
 import threading
@@ -22,7 +23,7 @@ def SendDMXFrame():
         datas.append(data)
     
     # display frame
-    for rng, data in zip(rngs, datas):
+    for rng, data in itertools.izip(rngs, datas):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
 def squid(dmxrngs, delta_t):

@@ -1,4 +1,5 @@
 import array
+import itertools
 import numpy as np
 import math
 import threading
@@ -42,7 +43,7 @@ def SendDMXFrame():
         datas.append(data)
     
     # display frame
-    for rng, data in zip(rngs, datas):
+    for rng, data in itertools.izip(rngs, datas):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
 
     # store relevant state for next frame calculation

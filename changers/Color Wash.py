@@ -33,4 +33,4 @@ class UnifiedWashController(UnifiedDMXController):
 def squid(dmxrngs, delta_t):
     controller = UnifiedWashController(dmxrngs, delta_t)
     controller.SendDMXStream(33.0)
-    
+
