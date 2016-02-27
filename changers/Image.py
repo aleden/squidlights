@@ -23,11 +23,6 @@ def squid(dmxrngs, pic):
     global tepilepsy
     tepilepsy = Tepilepsy()
 
-    # clear first
-    for x in range(tepilepsy.GetWidth()):
-        for y in range(tepilepsy.GetHeight()):
-            tepilepsy.SetPixel((x, y), (0, 0, 0))
-
     # open image, resize to fit
     im = Image.open(pic)
     im = im.convert('RGB')
