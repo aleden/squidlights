@@ -1,0 +1,10 @@
+{
+    "desc": "Shimmering",
+    "value":
+    {
+        "type": "int",
+        "desc": "Value dimension",
+        "beg": "0",
+        "end": "255"
+    }
+}
