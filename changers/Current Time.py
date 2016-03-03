@@ -63,8 +63,8 @@ def SendDMXFrame():
         for y in range(tepilepsy.GetHeight()):
             tepilepsy.SetPixel((x, y), (0, 0, 0))
 
-    tmdt_s = time.strftime("%b %d %I %M %p").upper()
-    pen.drawText(tmdt_s, (0,0))
+    #pen.drawText(time.strftime("%b %d").upper(), (0,0))
+    pen.drawText(time.strftime("%I %M %p").upper(), (0, tepilepsy.GetHeight() - pen.im.height))
 
     for rng,data in itertools.izip(rngs, tepilepsy.DMXData()):
         wrapper.Client().SendDmx(rng[0], data, DmxSent)
