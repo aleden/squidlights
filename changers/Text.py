@@ -81,7 +81,7 @@ def squid(dmxrngs, text):
     tepilepsy = Tepilepsy()
 
     global pen
-    pen = Pen(tepilepsy, text, '/home/jselover/Projects/tepilepsy_font.gif')
+    pen = Pen(tepilepsy, text, '/home/squidlights/resources/tepilepsy_font.gif')
 
     global wrapper
     wrapper = ClientWrapper()
