@@ -7,6 +7,7 @@
 #include <Wt/WNavigationBar>
 #include <Wt/WStackedWidget>
 #include <Wt/WText>
+#include <Wt/WTextArea>
 #include <Wt/WVBoxLayout>
 #include <Wt/WPushButton>
 #include <Wt/WGroupBox>
@@ -315,6 +316,23 @@ Wt::WWidget *changerWidget(changer_t &chg, unsigned l_idx) {
                                                  state_mutex.unlock();
                                                },
                                                std::placeholders::_1));
+      break;
+    }
+
+    case CHANGER_ARG_TEXT: {
+      Wt::WContainerWidget *cntr = new Wt::WContainerWidget(group);
+      Wt::WVBoxLayout *layout = new Wt::WVBoxLayout();
+      Wt::WTextArea *tbx = new Wt::WTextArea("", group);
+      Wt::WPushButton *btn = new Wt::WPushButton("Submit");
+      layout->addWidget(tbx);
+      layout->addWidget(btn);
+      btn->clicked().connect(std::bind([=](...) {
+            state_mutex.lock();
+            ap->_text = tbx->text().toUTF8();
+            run_light_changer(l_idx);
+            state_mutex.unlock();
+          }));
+      cntr->setLayout(layout);
       break;
     }
 

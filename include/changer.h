@@ -8,6 +8,7 @@ enum CHANGER_ARG_TYPE {
   CHANGER_ARG_COLOR,
   CHANGER_ARG_INT,
   CHANGER_ARG_PRECISE_INT,
+  CHANGER_ARG_TEXT,
   CHANGER_ARG_FILE
 };
 
@@ -24,6 +25,7 @@ struct changer_arg_t {
   } _color;
 
   std::string _file;
+  std::string _text; //not strictly necessary, could re-use _file
 };
 
 struct changer_t {

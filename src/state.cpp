@@ -127,6 +127,8 @@ string build_changer_squid_args(unsigned changer_idx, unsigned light_idx) {
   const light_t &l = lights()[light_idx];
 
   ostringstream ss;
+  string illegalchars = "'";
+  string outstr;
 
   // the dmx ranges
   ss << "[";
@@ -148,7 +150,19 @@ string build_changer_squid_args(unsigned changer_idx, unsigned light_idx) {
     case CHANGER_ARG_PRECISE_INT:
       ss << a._int.x;
       break;
+    case CHANGER_ARG_TEXT:
+      outstr = a._text;
+      //user controlled, so we have to be very careful
+      for(auto it = outstr.begin(); it != outstr.end(); ++it) {
+        if(illegalchars.find(*it) != string::npos) {
+          *it = ' '; //replace illegal characters with spaces
+        }
+      }
+      //This is probably not careful enough
+      ss << "'''" << outstr << "'''";
+      break;
     case CHANGER_ARG_FILE:
+      //not as user controlled, since filename is made by wt
       ss << '\'' << a._file << '\'';
       break;
     }
