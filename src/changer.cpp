@@ -75,6 +75,8 @@ void init_changers() {
         arg._color.g = 0;
         arg._color.b = 0;
         break;
+      case CHANGER_ARG_TEXT:
+        break;
       case CHANGER_ARG_FILE:
         break;
       }
@@ -92,10 +94,11 @@ void init_changer_arg_type_map() {
   chang_arg_ty_map["color"] = CHANGER_ARG_COLOR;
   chang_arg_ty_map["int"] = CHANGER_ARG_INT;
   chang_arg_ty_map["precise_int"] = CHANGER_ARG_PRECISE_INT;
+  chang_arg_ty_map["text"] = CHANGER_ARG_TEXT;
   chang_arg_ty_map["file"] = CHANGER_ARG_FILE;
 }
 
-const char *chang_arg_ty_string_map[] = {"color", "int", "precise_int", "file"};
+const char *chang_arg_ty_string_map[] = {"color", "int", "precise_int", "text", "file"};
 
 void print_changers() {
   for (const changer_t &chg : cl) {
