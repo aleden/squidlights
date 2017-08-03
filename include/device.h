@@ -6,7 +6,7 @@ namespace squidlights {
 
 enum DEVICE_TYPE {
   DEVICE_TYPE_KINET,
-  DEVICE_TYPE_KINET_SPDS480CA
+  DEVICE_TYPE_SERIAL_USB
 };
 
 struct device_t {
@@ -18,9 +18,8 @@ struct device_t {
     std::string ip;
   } kinet;
   struct {
-    std::string ip;
-    uint8_t port;
-  } kinet_spds480ca;
+    int ttyUSB_idx;
+  } serial_usb;
 };
 
 void init_devices();

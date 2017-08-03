@@ -49,14 +49,13 @@ void init_devices() {
 
 void fill_devty_map() {
   string_to_devty_map["kinet"] = DEVICE_TYPE_KINET;
-  string_to_devty_map["kinet_spds480ca"] = DEVICE_TYPE_KINET_SPDS480CA;
+  string_to_devty_map["usbserial"] = DEVICE_TYPE_SERIAL_USB;
 }
 
 static string read_text_file(const string &fp);
 
 static unordered_map<string, device_t *> kinet_dev_map;
-static unordered_map<string, unordered_map<uint8_t, device_t *>>
-    kinet_spds480ca_dev_map;
+static unordered_map<int, device_t *> usbserial_dev_map;
 
 void fill_dev_map() {
   fs::path dev_dir(appdir() / "devices");
@@ -103,14 +102,10 @@ void fill_dev_map() {
 
         kinet_dev_map[d.kinet.ip] = &d;
         break;
-      case DEVICE_TYPE_KINET_SPDS480CA:
-        d.kinet_spds480ca.ip = pt.get<string>("ip");
-        ba::trim(d.kinet_spds480ca.ip);
-        int port_i = pt.get<uint8_t>("port");
-        d.kinet_spds480ca.port = port_i;
+      case DEVICE_TYPE_SERIAL_USB:
+        d.serial_usb.ttyUSB_idx = std::stoi(pt.get<string>("idx"));
 
-        kinet_spds480ca_dev_map[d.kinet_spds480ca.ip][d.kinet_spds480ca.port] =
-            &d;
+        usbserial_dev_map[d.serial_usb.ttyUSB_idx] = &d;
         break;
     }
 
@@ -133,13 +128,12 @@ string read_text_file(const string &fp) {
 
 static void fill_kinet_dev_olaports(SelectServer *ss, const Result &result,
                                     const vector<OlaDevice> &devices);
-static void fill_kinet_spds480ca_dev_olaports(SelectServer *ss,
-                                              const Result &result,
-                                              const vector<OlaDevice> &devices);
+static void fill_usbserial_dev_olaports(SelectServer *ss, const Result &result,
+                                        const vector<OlaDevice> &devices);
 static void handle_ola_ack(SelectServer *ss, const Result &result);
 
 static unsigned int ola_kinetdev_alias;
-static unsigned int ola_kinet_spds480ca_dev_alias;
+static unsigned int ola_usbserial_dev_alias;
 
 void fill_dev_olaunivs() {
   ola::InitLogging(ola::OLA_LOG_WARN, ola::OLA_LOG_STDERR);
@@ -156,7 +150,7 @@ void fill_dev_olaunivs() {
   }
 
   //
-  // determine what KiNet/KiNet_SPDS480CA devices correspond to our devices
+  // determine what KiNet/usbserial devices correspond to our devices
   //
   SelectServer *ss = ola_cl.GetSelectServer();
   OlaClient *cl = ola_cl.GetClient();
@@ -165,8 +159,8 @@ void fill_dev_olaunivs() {
                       NewSingleCallback(&fill_kinet_dev_olaports, ss));
   ss->Run();
 
-  cl->FetchDeviceInfo(ola::OLA_PLUGIN_KINET_SPDS480CA,
-                      NewSingleCallback(&fill_kinet_spds480ca_dev_olaports, ss));
+  cl->FetchDeviceInfo(ola::OLA_PLUGIN_USBPRO,
+                      NewSingleCallback(&fill_usbserial_dev_olaports, ss));
   ss->Run();
 
   // verify all devices were found
@@ -182,7 +176,7 @@ void fill_dev_olaunivs() {
   //
   for (device_t &d : dl) {
     cl->Patch(d.ty == DEVICE_TYPE_KINET ? ola_kinetdev_alias
-                                        : ola_kinet_spds480ca_dev_alias,
+                                        : ola_usbserial_dev_alias,
               d.ola_port, ola::client::OUTPUT_PORT, ola::client::UNPATCH, 0,
               NewSingleCallback(&handle_ola_ack, ss));
     ss->Run();
@@ -196,7 +190,7 @@ void fill_dev_olaunivs() {
     d.ola_univ = ola_univ++;
 
     cl->Patch(d.ty == DEVICE_TYPE_KINET ? ola_kinetdev_alias
-                                        : ola_kinet_spds480ca_dev_alias,
+                                        : ola_usbserial_dev_alias,
               d.ola_port, ola::client::OUTPUT_PORT, ola::client::PATCH,
               d.ola_univ, NewSingleCallback(&handle_ola_ack, ss));
     ss->Run();
@@ -224,88 +218,76 @@ void handle_ola_ack(SelectServer *ss, const Result &result) {
 }
 
 void fill_kinet_dev_olaports(SelectServer *ss, const Result &result,
-                       const vector<OlaDevice> &devices) {
+                             const vector<OlaDevice> &devices) {
   if (!result.Success()) {
     cerr << result.Error() << endl;
     abort();
   }
 
-  if (devices.size() != 1)
-    abort();
+  if (!devices.empty()) {
+    const OlaDevice &olad = devices.front();
+    ola_kinetdev_alias = olad.Alias();
 
-  const OlaDevice &olad = devices.front();
-  ola_kinetdev_alias = olad.Alias();
+    cout << "Device " << olad.Alias() << ": " << olad.Name() << endl;
 
-  cout << "Device " << olad.Alias() << ": " << olad.Name() << endl;
+    vector<OlaOutputPort> ports = olad.OutputPorts();
+    for (auto port_iter = ports.begin(); port_iter != ports.end();
+         ++port_iter) {
+      // the following "hack" is the only way to get the IP address of this OLA
+      // KiNet device port. derived from ola-0.9.8/plugins/kinet/KiNetPort.h:50
+      string ipaddr =
+          port_iter->Description().substr(string("Power Supply: ").size());
 
-  vector<OlaOutputPort> ports = olad.OutputPorts();
-  for (auto port_iter = ports.begin(); port_iter != ports.end(); ++port_iter) {
-    // the following "hack" is the only way to get the IP address of this OLA
-    // KiNet device port. derived from ola-0.9.8/plugins/kinet/KiNetPort.h:50
-    string ipaddr =
-        port_iter->Description().substr(string("Power Supply: ").size());
+      auto devit = kinet_dev_map.find(ipaddr);
+      if (devit == kinet_dev_map.end())
+        continue;
 
-    auto devit = kinet_dev_map.find(ipaddr);
-    if (devit == kinet_dev_map.end())
-      continue;
+      (*devit).second->ola_univ = 1; // mark KiNet device as having been found
+      (*devit).second->ola_port = port_iter->Id();
 
-    (*devit).second->ola_univ = 1; // mark KiNet device as having been found
-    (*devit).second->ola_port = port_iter->Id();
-
-    cout << "  port " << port_iter->Id() << ", OUT " << port_iter->Description()
-         << " (" << (*devit).second->nm << ")" << endl;
+      cout << "  port " << port_iter->Id() << ", OUT "
+           << port_iter->Description() << " (" << (*devit).second->nm << ")"
+           << endl;
+    }
   }
 
   ss->Terminate();
 }
 
-void fill_kinet_spds480ca_dev_olaports(SelectServer *ss, const Result &result,
-                                       const vector<OlaDevice> &devices) {
+void fill_usbserial_dev_olaports(SelectServer *ss, const Result &result,
+                                 const vector<OlaDevice> &devices) {
   if (!result.Success()) {
     cerr << result.Error() << endl;
     abort();
   }
 
-  if (devices.size() != 1)
-    abort();
+  if (!devices.empty()) {
+    const OlaDevice &olad = devices.front();
+    ola_usbserial_dev_alias = olad.Alias();
 
-  const OlaDevice &olad = devices.front();
-  ola_kinet_spds480ca_dev_alias = olad.Alias();
+    cout << "Device " << olad.Alias() << ": " << olad.Name() << endl;
 
-  cout << "Device " << olad.Alias() << ": " << olad.Name() << endl;
+    vector<OlaOutputPort> ports = olad.OutputPorts();
+    for (auto port_iter = ports.begin(); port_iter != ports.end();
+         ++port_iter) {
+      cerr << __FUNCTION__ << ": TODO parse the idx";
+      int idx = 0;
 
-  vector<OlaOutputPort> ports = olad.OutputPorts();
-  for (auto port_iter = ports.begin(); port_iter != ports.end(); ++port_iter) {
-    // the following "hack" is the only way. derived from
-    // ola-0.9.8/plugins/kinet/KiNetPort.h:50
-    string ipaddr_and_port_s =
-        port_iter->Description().substr(string("Power Supply: ").size());
+      auto devit = usbserial_dev_map.find(idx);
+      if (devit == usbserial_dev_map.end())
+        continue;
 
-    string ipaddr;
-    string spds480ca_port_s;
-    istringstream iss(ipaddr_and_port_s, istringstream::in);
-    iss >> ipaddr;
-    iss >> spds480ca_port_s;
+      (*devit).second->ola_univ =
+          1; // mark usbserial device as having been found
+      (*devit).second->ola_port = port_iter->Id();
 
-    int port_i = atoi(spds480ca_port_s.c_str());
-    uint8_t port_u8 = static_cast<uint8_t>(port_i);
+      cout << "  port " << port_iter->Id() << ", OUT "
+           << port_iter->Description() << " (" << (*devit).second->nm << ")"
+           << endl;
+    }
 
-    auto dev_port_map_it = kinet_spds480ca_dev_map.find(ipaddr);
-    if (dev_port_map_it == kinet_spds480ca_dev_map.end())
-      continue;
-
-    auto devit = (*dev_port_map_it).second.find(port_u8);
-    if (devit == (*dev_port_map_it).second.end())
-      continue;
-
-    (*devit).second->ola_univ = 1; // mark KiNet device as having been found
-    (*devit).second->ola_port = port_iter->Id();
-
-    cout << "  port " << port_iter->Id() << ", OUT " << port_iter->Description()
-         << " (" << (*devit).second->nm << ")" << endl;
+    ss->Terminate();
   }
-
-  ss->Terminate();
 }
 
 static unordered_map<string, device_t *> nm_to_dev_map;

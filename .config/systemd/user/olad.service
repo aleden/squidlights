@@ -2,8 +2,7 @@
 Description=Open Lighting Architecture
 
 [Service]
-ExecStart=/sbin/start-stop-daemon --start --make-pidfile --pidfile %h/build/olad.pid --exec /usr/local/bin/olad -- --syslog --log-level 3 --config-dir %h/.ola
-PIDFile=%h/build/olad.pid
+ExecStart=/usr/bin/olad --log-level 4
 Restart=always
 RestartSec=3
 
